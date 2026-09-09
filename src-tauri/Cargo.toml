@@ -1,0 +1,28 @@
+[package]
+name = "caram-browser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { path = "../shared" }
+tauri = { version = "2.0.0", features = ["devtools"] }
+tauri-plugin-shell = "2.0.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+rusqlite = { version = "0.31", features = ["bundled"] }
+adblock = "0.8"
+url = "2.5"
+dirs = "5.0"
+log = "0.4"
+env_logger = "0.11"
+reqwest = { version = "0.12", features = ["json"] }
+
+# Cryptography: Argon2id + AES-256-GCM
+argon2 = { version = "0.5", features = ["std"] }
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
