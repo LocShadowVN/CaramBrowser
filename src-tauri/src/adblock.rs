@@ -1,4 +1,3 @@
-cat << 'EOF' > src-tauri/src/adblock.rs
 use adblock::lists::{FilterFormat, ParseOptions};
 use adblock::request::Request;
 use adblock::Engine;
@@ -114,4 +113,3 @@ impl ShieldEngine {
         }
     }
 }
-EOF
