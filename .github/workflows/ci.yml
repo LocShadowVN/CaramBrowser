@@ -59,6 +59,9 @@ jobs:
         run: |
           cd frontend
           trunk build --release
+          
+      - name: Pin rmp dependency
+        run: cargo update -p rmp --precise 0.8.11 || true
 
       - name: Run Clippy Linter on Entire Workspace
         run: cargo clippy --workspace --all-targets
