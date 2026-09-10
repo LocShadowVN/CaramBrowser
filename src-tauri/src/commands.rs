@@ -11,8 +11,12 @@ use std::process::Command;
 use tauri::{AppHandle, Manager, State};
 
 #[tauri::command]
-pub async fn check_shield(shield: State<'_, ShieldEngine>, target: String, host: String) -> ShieldVerdict {
-    shield.inspect_url(&target, &host).await
+pub async fn check_shield(
+    shield: State<'_, ShieldEngine>,
+    target: String,
+    host: String,
+) -> Result<ShieldVerdict, String> {
+    Ok(shield.inspect_url(&target, &host).await)
 }
 
 #[tauri::command]
