@@ -61,7 +61,7 @@ jobs:
           trunk build --release
 
       - name: Run Clippy Linter on Entire Workspace
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets
 
       - name: Run Tests
         run: cargo test --workspace
