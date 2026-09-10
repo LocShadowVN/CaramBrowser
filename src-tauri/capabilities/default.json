@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissions for Caram Browser",
+  "windows": ["*"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open"
+  ]
+}
