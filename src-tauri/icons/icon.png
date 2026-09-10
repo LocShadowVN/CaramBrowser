@@ -1,6 +1,0 @@
-mkdir -p src-tauri/icons
-echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAALUlEQVRYR+3QQREAAAzCQNq/9KXhAQ9wQO6Sb3qgB6AHegB6oAegB3oAeqAHvh6gLwFf6l4FSAAAAABJRU5ErkJggg==' | base64 -d > src-tauri/icons/icon.png
-cp src-tauri/icons/icon.png src-tauri/icons/32x32.png
-cp src-tauri/icons/icon.png src-tauri/icons/128x128.png
-cp src-tauri/icons/icon.png src-tauri/icons/128x128@2x.png
-cp src-tauri/icons/icon.png src-tauri/icons/icon.ico
