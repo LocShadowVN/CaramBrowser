@@ -1,4 +1,3 @@
-mod components;
 mod icons;
 mod tauri_ipc;
 mod views;
