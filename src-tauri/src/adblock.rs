@@ -2,43 +2,69 @@ use adblock::lists::{FilterFormat, ParseOptions};
 use adblock::request::Request;
 use adblock::Engine;
 use shared::{ShieldLevel, ShieldVerdict};
+use std::sync::mpsc::{channel, Sender};
 use std::sync::RwLock;
+use std::thread;
+
+enum ShieldJob {
+    Check {
+        url: String,
+        host: String,
+        reply_to: tokio::sync::oneshot::Sender<bool>,
+    },
+}
 
 pub struct ShieldEngine {
-    engine: RwLock<Engine>,
+    tx: Sender<ShieldJob>,
     level: RwLock<ShieldLevel>,
 }
 
 impl ShieldEngine {
     pub fn new() -> Self {
-        let rules = vec![
-            "||doubleclick.net^$third-party",
-            "||google-analytics.com^",
-            "||googlesyndication.com^",
-            "||adnxs.com^",
-            "||facebook.com/tr/*",
-            "/ads.js",
-            "||adroll.com^",
-            "||outbrain.com^",
-            "||taboola.com^",
-            "||hotjar.com^",
-            "##.ad-banner",
-            "##.adsbygoogle",
-            "##[id^='google_ads_']",
-            "##.cookie-banner",
-            "##.consent-modal",
-        ];
+        let (tx, rx) = channel::<ShieldJob>();
 
-        let engine = Engine::from_rules(
-            rules.into_iter(),
-            ParseOptions {
-                format: FilterFormat::Standard,
-                ..Default::default()
-            },
-        );
+        // Khởi chạy một Worker Thread độc lập dành riêng cho Brave Engine
+        thread::spawn(move || {
+            let default_rules = vec![
+                "||doubleclick.net^$third-party",
+                "||google-analytics.com^",
+                "||googlesyndication.com^",
+                "||adnxs.com^",
+                "||facebook.com/tr/*",
+                "/ads/*",
+                "/adbanner/*",
+                "||adroll.com^",
+                "||taboola.com^",
+                "||outbrain.com^",
+                "##.ad-banner",
+                "##.adsbygoogle",
+                "##[id^='google_ads_']",
+            ];
+
+            let engine = Engine::from_rules(
+                default_rules.iter().map(|s| *s),
+                ParseOptions {
+                    format: FilterFormat::Standard,
+                    ..Default::default()
+                },
+            );
+
+            // Lắng nghe các yêu cầu kiểm tra URL
+            while let Ok(job) = rx.recv() {
+                match job {
+                    ShieldJob::Check { url, host, reply_to } => {
+                        let blocked = match Request::new(&url, &host, "script") {
+                            Ok(req) => engine.check_network_urls(&req).matched,
+                            Err(_) => false,
+                        };
+                        let _ = reply_to.send(blocked);
+                    }
+                }
+            }
+        });
 
         Self {
-            engine: RwLock::new(engine),
+            tx,
             level: RwLock::new(ShieldLevel::Standard),
         }
     }
@@ -50,14 +76,13 @@ impl ShieldEngine {
     }
 
     pub fn get_level(&self) -> ShieldLevel {
-        self.level.read().unwrap().clone()
+        self.level.read().map(|l| l.clone()).unwrap_or(ShieldLevel::Standard)
     }
 
-    pub fn inspect_url(&self, target_url: &str, host_url: &str) -> ShieldVerdict {
+    pub async fn inspect_url(&self, target_url: &str, host_url: &str) -> ShieldVerdict {
         let level = self.get_level();
-        let base_css = r#"
-            .ad-banner, .adsbygoogle, [id^='google_ads_'], 
-            .cookie-banner, .consent-modal, div[data-ad-unit] {
+        let cosmetic_css = r#"
+            .ad-banner, .adsbygoogle, [id^='google_ads_'], .cookie-banner, div[data-ad] {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0 !important;
@@ -73,38 +98,21 @@ impl ShieldEngine {
             };
         }
 
-        if level == ShieldLevel::Aggressive {
-            let lower = target_url.to_lowercase();
-            if lower.contains("telemetry") || lower.contains("fingerprint") || lower.contains("track") {
-                return ShieldVerdict {
-                    blocked: true,
-                    rule: Some("Aggressive Anti-Fingerprinting Heuristic Match".into()),
-                    level,
-                    cosmetic_css: base_css.into(),
-                };
-            }
-        }
+        // Kiểm tra qua Brave Adblock Engine trên luồng Worker
+        let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
+        let _ = self.tx.send(ShieldJob::Check {
+            url: target_url.to_string(),
+            host: host_url.to_string(),
+            reply_to: reply_tx,
+        });
 
-        let req = match Request::new(target_url, host_url, "script") {
-            Ok(r) => r,
-            Err(_) => {
-                return ShieldVerdict {
-                    blocked: false,
-                    rule: None,
-                    level,
-                    cosmetic_css: base_css.into(),
-                }
-            }
-        };
-
-        let engine = self.engine.read().unwrap();
-        let check = engine.check(&req);
+        let is_blocked = reply_rx.await.unwrap_or(false);
 
         ShieldVerdict {
-            blocked: check.matched,
-            rule: check.filter.map(|f| f.to_string()),
+            blocked: is_blocked,
+            rule: if is_blocked { Some("Brave Engine Match".into()) } else { None },
             level,
-            cosmetic_css: base_css.into(),
+            cosmetic_css: cosmetic_css.into(),
         }
     }
 }
