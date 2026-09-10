@@ -59,11 +59,10 @@ pub fn VaultView() -> impl IntoView {
         let p_clone = p.clone();
         spawn_local(async move {
             let res: Result<Vec<DecryptedVaultRecord>, _> = call_tauri("vault_read_all", &MasterPassArgs { master_pass: p.clone() }).await;
-            match res {
-                Ok(list) => {
-                    set_creds.set(list);
-                    set_unlocked_pass.set(Some(p_clone));
-                }
+            if let Ok(list) = res {
+                set_creds.set(list);
+                set_unlocked_pass.set(Some(p_clone));
+            }
                 Err(_) => {}
             }
         });
