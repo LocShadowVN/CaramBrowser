@@ -51,6 +51,9 @@ jobs:
           # Cài đặt cargo-binstall để kéo binary tauri-cli trực tiếp, không phải compile lâu
           curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
           cargo binstall --no-confirm tauri-cli@^2.0.0
+          
+      - name: Pin rmp dependency
+        run: cargo update -p rmp --precise 0.8.11 || true
 
       - name: Build Full Caram Browser App
         run: |
