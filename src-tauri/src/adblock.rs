@@ -1,3 +1,4 @@
+cat << 'EOF' > src-tauri/src/adblock.rs
 use adblock::lists::{FilterFormat, ParseOptions};
 use adblock::request::Request;
 use adblock::Engine;
@@ -23,7 +24,6 @@ impl ShieldEngine {
     pub fn new() -> Self {
         let (tx, rx) = channel::<ShieldJob>();
 
-        // Khởi chạy một Worker Thread độc lập dành riêng cho Brave Engine
         thread::spawn(move || {
             let default_rules = vec![
                 "||doubleclick.net^$third-party",
@@ -49,12 +49,11 @@ impl ShieldEngine {
                 },
             );
 
-            // Lắng nghe các yêu cầu kiểm tra URL
             while let Ok(job) = rx.recv() {
                 match job {
                     ShieldJob::Check { url, host, reply_to } => {
                         let blocked = match Request::new(&url, &host, "script") {
-                            Ok(req) => engine.check_network_urls(&req).matched,
+                            Ok(req) => engine.check_network_request(&req).matched,
                             Err(_) => false,
                         };
                         let _ = reply_to.send(blocked);
@@ -98,7 +97,6 @@ impl ShieldEngine {
             };
         }
 
-        // Kiểm tra qua Brave Adblock Engine trên luồng Worker
         let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
         let _ = self.tx.send(ShieldJob::Check {
             url: target_url.to_string(),
@@ -116,3 +114,4 @@ impl ShieldEngine {
         }
     }
 }
+EOF
