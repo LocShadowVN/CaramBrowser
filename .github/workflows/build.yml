@@ -1,0 +1,77 @@
+name: Build Linux Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-binaries:
+    name: Build .deb and .AppImage
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Linux System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            src-tauri
+            frontend
+            shared
+
+      - name: Install Pre-built Trunk & Cargo Binstall
+        run: |
+          # Cài đặt nhanh Trunk
+          wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.21.5/trunk-x86_64-unknown-linux-gnu.tar.gz | sudo tar -xzf- -C /usr/local/bin
+          # Cài đặt cargo-binstall để kéo binary tauri-cli trực tiếp, không phải compile lâu
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall --no-confirm tauri-cli@^2.0.0
+
+      - name: Build Full Caram Browser App
+        run: |
+          cargo tauri build
+
+      - name: Upload Artifacts for Manual Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Caram-Browser-Linux-Build
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/caram-browser
+          retention-days: 7
+
+      - name: Publish GitHub Release (When tagged)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/caram-browser
+          generate_release_notes: true
