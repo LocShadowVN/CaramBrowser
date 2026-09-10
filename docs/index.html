@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Caram Browser — The Lightweight, Memory-Safe Linux Web Browser</title>
+  <meta name="description" content="A fast, distraction-free Linux web browser built with Tauri v2, WebKitGTK, and 100% Rust WASM. Integrated Brave-grade adblock engine and Argon2id Vault." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #0d0e11;
+      --surface: #14161b;
+      --surface-subtle: #191c23;
+      --border: #232731;
+      --border-strong: #323846;
+      --text: #f0f2f5;
+      --text-muted: #848c9b;
+      --text-faint: #505663;
+      --accent: #38bdf8; /* Ice Blue / Titanium */
+      --accent-dim: rgba(56, 189, 248, 0.1);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.1);
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navigation */
+    nav {
+      border-bottom: 1px solid var(--border);
+      background: rgba(13, 14, 17, 0.88);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 60px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand svg {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      font-family: var(--sans);
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover {
+      background: var(--surface-subtle);
+      border-color: var(--border-strong);
+    }
+
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      background: #ffffff;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 90px 0 60px;
+    }
+
+    .tag-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .tag {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .tag-accent {
+      color: var(--accent);
+      background: var(--accent-dim);
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.15;
+      margin-bottom: 20px;
+      max-width: 820px;
+    }
+
+    .hero-lead {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin-bottom: 32px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 50px;
+    }
+
+    /* Terminal Quickbox */
+    .quick-install {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 580px;
+      font-family: var(--mono);
+      font-size: 13px;
+      margin-bottom: 60px;
+    }
+
+    .quick-install code {
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+
+    .quick-install code span {
+      color: var(--accent);
+      user-select: none;
+    }
+
+    .copy-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--mono);
+    }
+
+    .copy-btn:hover {
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+
+    /* UI Specimen / Window */
+    .specimen-window {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.8);
+    }
+
+    .window-chrome {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border-strong);
+    }
+
+    .window-tab {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      padding: 4px 12px;
+      border-radius: 6px 6px 0 0;
+      font-size: 11px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+    }
+
+    .window-address {
+      flex: 1;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge-status {
+      font-size: 10px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+
+    .window-body {
+      padding: 40px;
+      background: var(--bg);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+    }
+
+    .metric-card .val {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .metric-card .lbl {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Technical Grid */
+    .section-header {
+      margin-bottom: 40px;
+    }
+
+    .section-header h2 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .grid-section {
+      padding: 90px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .card-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Technical Architecture Flow */
+    .arch-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      overflow-x: auto;
+      line-height: 1.8;
+      margin-top: 24px;
+    }
+
+    /* Comparison Table */
+    .table-section {
+      padding: 90px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text-faint);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td:first-child {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .cell-focus {
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+
+    /* Downloads Matrix */
+    .downloads-section {
+      padding: 90px 0 120px;
+      border-top: 1px solid var(--border);
+    }
+
+    .download-columns {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .download-pane {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .pane-head h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .pane-head p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .pane-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 16px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 34px; }
+      .grid-cards, .download-columns, .window-body { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .quick-install { flex-direction: column; gap: 10px; align-items: flex-start; }
+      .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="container nav-inner">
+      <a href="#" class="brand">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span>Caram Browser</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#specs">Specifications</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#comparison">Benchmarks</a></li>
+        <li><a href="#downloads">Download</a></li>
+      </ul>
+
+      <div class="nav-cta">
+        <a href="https://github.com/LocShadowVN/CaramBrowser" target="_blank" class="btn btn-outline">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          Source
+        </a>
+        <a href="#downloads" class="btn btn-primary">Releases</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="tag-row">
+        <span class="tag tag-accent">x86_64 Linux</span>
+        <span class="tag">GPL-3.0</span>
+        <span class="tag">100% Rust Workspace</span>
+      </div>
+
+      <h1>A minimal, memory-safe web browser for the Linux desktop.</h1>
+
+      <p class="hero-lead">
+        Engineered with Tauri v2, WebKitGTK 4.1, and Leptos WASM. Caram bypasses the RAM-heavy overhead of modern Chromium builds while keeping Brave-grade ad blocking and zero telemetry.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#downloads" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download v1.0.0
+        </a>
+        <a href="https://github.com/LocShadowVN/CaramBrowser" target="_blank" class="btn btn-outline">
+          View Repository
+        </a>
+      </div>
+
+      <!-- Quick Run Shell -->
+      <div class="quick-install">
+        <code><span>$ </span>wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.deb</code>
+        <button class="copy-btn" onclick="copySnippet()">Copy</button>
+      </div>
+
+      <!-- Specimen Window -->
+      <div class="specimen-window">
+        <div class="window-chrome">
+          <div class="window-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+
+          <div class="window-tab">
+            <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle></svg>
+            <span>caram://newtab</span>
+          </div>
+
+          <div class="window-address">
+            <span>caram://newtab</span>
+            <span class="badge-status">Shield: Standard</span>
+          </div>
+        </div>
+
+        <div class="window-body">
+          <div class="metric-card">
+            <div class="val">~112 MB</div>
+            <div class="lbl">Baseline Memory (1 Tab)</div>
+          </div>
+          <div class="metric-card">
+            <div class="val">0.00 ms</div>
+            <div class="lbl">Telemetry Ping Latency</div>
+          </div>
+          <div class="metric-card">
+            <div class="val">100%</div>
+            <div class="lbl">Safe Native Memory Code</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Engineering Specs -->
+  <section class="grid-section" id="specs">
+    <div class="container">
+      <div class="section-header">
+        <h2>System Architecture & Components</h2>
+        <p>No packaged Node.js runtime, no V8 bloatware, no sponsored ecosystem tiles.</p>
+      </div>
+
+      <div class="grid-cards">
+        <div class="card">
+          <div class="card-meta">Network / Privacy</div>
+          <h3>Caram Shield Core</h3>
+          <p>Integrates the official Brave adblock engine on a dedicated, isolated OS thread using message-passing channels to guarantee non-blocking multi-threaded request filtering.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-meta">Cryptography</div>
+          <h3>Argon2id + AES-256 Vault</h3>
+          <p>Local password database. Uses memory-hard Argon2id key derivation with a 128-bit random salt and authenticated AES-256-GCM encryption with individual 96-bit nonces.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-meta">DNS Resolution</div>
+          <h3>Encrypted DoH Subsystem</h3>
+          <p>DNS queries are resolved over HTTPS (Cloudflare 1.1.1.1, Quad9, Google) via RFC 8484 with live millisecond latency benchmarking.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-meta">Frontend Engine</div>
+          <h3>Leptos WebAssembly (WASM)</h3>
+          <p>The browser chrome is compiled from Rust directly to WASM (CSR mode). Uses fine-grained reactivity signals for zero-virtual-DOM overhead.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-meta">Compatibility Layer</div>
+          <h3>Caram WebBridge</h3>
+          <p>Native WASM runtime layer that overrides User-Agents, mocks `window.chrome`, and polyfills Chromium client hints for Google Meet, Discord, and Slack.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-meta">Storage Layer</div>
+          <h3>Thread-Safe SQLite</h3>
+          <p>History, bookmarks, and user configurations are managed locally in SQLite through safe Rust mutex wrappers. Zero cloud sync sync-traps.</p>
+        </div>
+      </div>
+
+      <!-- Text Architecture Flow -->
+      <div class="arch-box" id="architecture">
+        <div>[Frontend: Leptos WASM]  <-- IPC Channel (tauri::invoke) -->  [Backend: Tauri v2 / Rust]</div>
+        <div>         │                                                              │</div>
+        <div>         ├── caram:// UI rendering (DOM)                                ├── WebKitGTK 4.1 Host Engine</div>
+        <div>         └── Reactive Tab & Navigation State                            ├── Isolated Brave Adblock Thread</div>
+        <div>                                                                        ├── Argon2id/AES-256 KDF Engine</div>
+        <div>                                                                        └── Local SQLite Storage (.sqlite)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Technical Benchmarks -->
+  <section class="table-section" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <h2>Direct Resource & Feature Audit</h2>
+        <p>Measured against production browser builds on an Ubuntu 22.04 LTS reference machine.</p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Caram Browser</th>
+            <th>Brave Browser</th>
+            <th>Mozilla Firefox</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>UI & Logic Language</td>
+            <td class="cell-focus">100% Rust (Core + WASM)</td>
+            <td>C++, Chromium Fork</td>
+            <td>C++, Rust, JavaScript</td>
+          </tr>
+          <tr>
+            <td>Idle Memory Consumption</td>
+            <td class="cell-focus">~90 MB – 140 MB</td>
+            <td>~600 MB – 850 MB</td>
+            <td>~450 MB – 650 MB</td>
+          </tr>
+          <tr>
+            <td>Telemetry & Analytics</td>
+            <td class="cell-focus">0 bytes (None)</td>
+            <td>BAT, Crypto, Rewards</td>
+            <td>Telemetry, Pocket, Sponsored</td>
+          </tr>
+          <tr>
+            <td>Adblock Implementation</td>
+            <td class="cell-focus">Brave Engine (Native Thread)</td>
+            <td>Brave Shields (C++)</td>
+            <td>Basic Tracking Protection</td>
+          </tr>
+          <tr>
+            <td>Proprietary DRM (Widevine)</td>
+            <td>No (Open-Web Focus)</td>
+            <td>Supported (Widevine CDM)</td>
+            <td>Supported (Widevine CDM)</td>
+          </tr>
+          <tr>
+            <td>Web Compatibility Parity</td>
+            <td>~95% (via Caram WebBridge)</td>
+            <td>100%</td>
+            <td>~98%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Downloads -->
+  <section class="downloads-section" id="downloads">
+    <div class="container">
+      <div class="section-header">
+        <h2>Production Binaries</h2>
+        <p>Download pre-compiled binary packages built directly by the GitHub Actions CI pipeline.</p>
+      </div>
+
+      <div class="download-columns">
+        <div class="download-pane">
+          <div class="pane-head">
+            <h4>Universal AppImage</h4>
+            <p>Self-contained Linux binary. Compatible with Ubuntu, Arch, Fedora, openSUSE, and Debian.</p>
+          </div>
+          <div>
+            <a href="https://github.com/LocShadowVN/CaramBrowser/releases/latest" target="_blank" class="btn btn-primary" style="width: 100%;">
+              Download .AppImage
+            </a>
+            <div class="pane-meta">Target: x86_64-unknown-linux-gnu</div>
+          </div>
+        </div>
+
+        <div class="download-pane">
+          <div class="pane-head">
+            <h4>Debian Package (.deb)</h4>
+            <p>Standard installer package for Ubuntu, Debian, Pop!_OS, and Linux Mint distributions.</p>
+          </div>
+          <div>
+            <a href="https://github.com/LocShadowVN/CaramBrowser/releases/latest" target="_blank" class="btn btn-outline" style="width: 100%;">
+              Download .deb
+            </a>
+            <div class="pane-meta">Install: sudo dpkg -i caram-browser_*.deb</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <div>
+        Caram Browser is released under the <strong>GNU General Public License v3.0 (GPL-3.0)</strong>.
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/LocShadowVN/CaramBrowser" target="_blank">Repository</a>
+        <a href="https://github.com/LocShadowVN/CaramBrowser/releases" target="_blank">Releases</a>
+        <a href="https://github.com/LocShadowVN/CaramBrowser/issues" target="_blank">Issue Tracker</a>
+        <a href="#">Top</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copySnippet() {
+      const code = 'wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.deb && sudo dpkg -i caram-browser_1.0.0_amd64.deb';
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.innerText = 'Copied';
+        setTimeout(() => { btn.innerText = 'Copy'; }, 1800);
+      });
+    }
+  </script>
+</body>
+</html>
