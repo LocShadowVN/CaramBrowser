@@ -63,8 +63,6 @@ pub fn VaultView() -> impl IntoView {
                 set_creds.set(list);
                 set_unlocked_pass.set(Some(p_clone));
             }
-                Err(_) => {}
-            }
         });
     };
 
