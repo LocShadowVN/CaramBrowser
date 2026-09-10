@@ -1,16 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)] // <-- Thêm Default vào đây
 pub enum ShieldLevel {
     Off,
+    #[default] // <-- Thêm dòng này trước Standard
     Standard,
     Aggressive,
-}
-
-impl Default for ShieldLevel {
-    fn default() -> Self {
-        ShieldLevel::Standard
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
