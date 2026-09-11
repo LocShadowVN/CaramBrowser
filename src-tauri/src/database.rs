@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use rusqlite::{params, Connection};
 use shared::{AppConfig, BookmarkRecord, DownloadRecord, ExtensionItem, HistoryRecord};
 use std::fs;
