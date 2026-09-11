@@ -68,11 +68,19 @@ jobs:
         run: |
           cargo tauri build
 
+     - name: List Generated Bundles
+        run: |
+          echo "=== Kiem tra thu muc chua file build ==="
+          find . -name "*.deb" -o -name "*.AppImage"
+
       - name: Upload Artifacts for Manual Download
         uses: actions/upload-artifact@v4
         with:
           name: Caram-Browser-Linux-Build
           path: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/appimage/*.AppImage
+            target/release/caram-browser
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/caram-browser
@@ -83,6 +91,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/appimage/*.AppImage
+            target/release/caram-browser
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/caram-browser
