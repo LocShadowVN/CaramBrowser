@@ -53,14 +53,17 @@ jobs:
       - name: Pin rmp dependency
         run: cargo update -p rmp --precise 0.8.11 || true
 
-      - name: Generate App Icons
+      - name: Generate High-Resolution App Icons
         run: |
           mkdir -p src-tauri/icons
-          echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAALUlEQVRYR+3QQREAAAzCQNq/9KXhAQ9wQO6Sb3qgB6AHegB6oAegB3oAeqAHvh6gLwFf6l4FSAAAAABJRU5ErkJggg==' | base64 -d > src-tauri/icons/icon.png
-          cp src-tauri/icons/icon.png src-tauri/icons/32x32.png
-          cp src-tauri/icons/icon.png src-tauri/icons/128x128.png
-          cp src-tauri/icons/icon.png src-tauri/icons/128x128@2x.png
-          cp src-tauri/icons/icon.png src-tauri/icons/icon.ico
+          cat << 'EOF' > src-tauri/icons/app-icon.svg
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+            <rect width="512" height="512" rx="100" fill="#14161b"/>
+            <path d="M256 64 L384 128 V256 C384 340 328 416 256 448 C184 416 128 340 128 256 V128 Z" fill="#38bdf8"/>
+            <path d="M256 120 L344 164 V256 C344 316 304 372 256 398 C208 372 168 316 168 256 V164 Z" fill="#14161b"/>
+          </svg>
+          EOF
+          cargo tauri icon src-tauri/icons/app-icon.svg
 
       - name: Build Full Caram Browser App
         run: |
