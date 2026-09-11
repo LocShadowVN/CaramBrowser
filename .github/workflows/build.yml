@@ -9,7 +9,7 @@ on:
 jobs:
   build-binaries:
     name: Build .deb and .AppImage
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -46,15 +46,13 @@ jobs:
 
       - name: Install Pre-built Trunk & Cargo Binstall
         run: |
-          # Cài đặt nhanh Trunk
           wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.21.5/trunk-x86_64-unknown-linux-gnu.tar.gz | sudo tar -xzf- -C /usr/local/bin
-          # Cài đặt cargo-binstall để kéo binary tauri-cli trực tiếp, không phải compile lâu
           curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
           cargo binstall --no-confirm tauri-cli@^2.0.0
-          
+
       - name: Pin rmp dependency
         run: cargo update -p rmp --precise 0.8.11 || true
-        
+
       - name: Generate App Icons
         run: |
           mkdir -p src-tauri/icons
@@ -68,7 +66,7 @@ jobs:
         run: |
           cargo tauri build
 
-     - name: List Generated Bundles
+      - name: List Generated Bundles
         run: |
           echo "=== Kiem tra thu muc chua file build ==="
           find . -name "*.deb" -o -name "*.AppImage"
