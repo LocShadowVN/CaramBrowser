@@ -7,7 +7,7 @@ use argon2::{
     Argon2,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use rand::{distributions::Alphanumeric, Rng, RngCore};
+use rand::{rngs::OsRng as RandOsRng, Rng, RngCore};
 
 pub struct CryptoEngine;
 
@@ -41,13 +41,13 @@ impl CryptoEngine {
 
     pub fn encrypt_secret(master_key: &str, plaintext: &str) -> Result<(String, String, String), String> {
         let mut salt_bytes = [0u8; 16];
-        rand::thread_rng().fill_bytes(&mut salt_bytes);
+        RandOsRng.fill_bytes(&mut salt_bytes);
 
         let key_bytes = Self::derive_key(master_key, &salt_bytes)?;
         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key_bytes));
 
         let mut nonce_bytes = [0u8; 12];
-        rand::thread_rng().fill_bytes(&mut nonce_bytes);
+        RandOsRng.fill_bytes(&mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
 
         let ciphertext = cipher
@@ -84,10 +84,13 @@ impl CryptoEngine {
 
     pub fn generate_strong_password(length: usize) -> String {
         let len = length.clamp(12, 64);
-        rand::thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(len)
-            .map(char::from)
+        const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+        let mut rng = RandOsRng;
+        (0..len)
+            .map(|_| {
+                let idx = rng.gen_range(0..CHARSET.len());
+                CHARSET[idx] as char
+            })
             .collect()
     }
 }
