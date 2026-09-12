@@ -18,7 +18,7 @@ pub struct DnsResolver;
 impl DnsResolver {
     pub async fn ping_test(doh_url: &str) -> DnsTestResult {
         let client = match reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(3))
+            .timeout(std::time::Duration::from_secs(4))
             .build()
         {
             Ok(c) => c,
@@ -32,9 +32,12 @@ impl DnsResolver {
             }
         };
 
+        let separator = if doh_url.contains('?') { "&" } else { "?" };
+        let test_endpoint = format!("{}{}name=cloudflare.com&type=A", doh_url, separator);
+
         let start = Instant::now();
         let request = client
-            .get(format!("{}?name=cloudflare.com&type=A", doh_url))
+            .get(&test_endpoint)
             .header("accept", "application/dns-json")
             .send()
             .await;
@@ -48,7 +51,7 @@ impl DnsResolver {
                         latency_ms: elapsed,
                         resolved_ip: None,
                         success: false,
-                        error: Some(format!("HTTP Code {}", res.status())),
+                        error: Some(format!("HTTP {}", res.status())),
                     };
                 }
                 match res.json::<DohPayload>().await {
@@ -68,7 +71,7 @@ impl DnsResolver {
                         latency_ms: elapsed,
                         resolved_ip: None,
                         success: false,
-                        error: Some(format!("Parse error: {}", e)),
+                        error: Some(format!("Payload Parse Error: {}", e)),
                     },
                 }
             }
