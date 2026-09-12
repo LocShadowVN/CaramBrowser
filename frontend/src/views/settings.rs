@@ -72,33 +72,48 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
                                             let _ = call_tauri::<_, ()>("update_setting", &SettingArgs { key: "search_engine".into(), value: val }).await;
                                         });
                                     }>
+                                        <option value="https://search.brave.com/search?q=" selected=move || config.get().search_engine.contains("brave")>"Brave Search (Default)"</option>
                                         <option value="https://duckduckgo.com/?q=" selected=move || config.get().search_engine.contains("duckduckgo")>"DuckDuckGo"</option>
-                                        <option value="https://search.brave.com/search?q=" selected=move || config.get().search_engine.contains("brave")>"Brave Search"</option>
                                         <option value="https://www.google.com/search?q=" selected=move || config.get().search_engine.contains("google")>"Google"</option>
                                     </select>
+
                                     <label>"Downloads Save Path"</label>
-                                    <input type="text" value=config.get().download_path />
+                                    <input
+                                        type="text"
+                                        prop:value=move || config.get().download_path
+                                        on:input=move |ev| {
+                                            let val = event_target_value(&ev);
+                                            let mut c = config.get();
+                                            c.download_path = val.clone();
+                                            set_config.set(c);
+                                            spawn_local(async move {
+                                                let _ = call_tauri::<_, ()>("update_setting", &SettingArgs { key: "download_path".into(), value: val }).await;
+                                            });
+                                        }
+                                    />
                                 </div>
                             </div>
                         }.into_view(),
 
                         SettingsTab::Shield => view! {
                             <div class="panel-card">
-                                <h2>"Caram Shield & Protection Core"</h2>
+                                <h2>"Caram Shield & Brave Engine Protection"</h2>
                                 <div class="grid-form">
-                                    <label>"Default Protection Level"</label>
+                                    <label>"Protection Level"</label>
                                     <select on:change=move |ev| {
                                         let val = event_target_value(&ev);
                                         let mut c = config.get();
                                         c.shield_level = val.clone();
                                         set_config.set(c);
+                                        let val_clone = val.clone();
                                         spawn_local(async move {
                                             let _ = call_tauri::<_, ()>("update_setting", &SettingArgs { key: "shield_level".into(), value: val }).await;
+                                            let _ = call_tauri::<_, ()>("set_shield_level", &SettingArgs { key: "level".into(), value: val_clone }).await;
                                         });
                                     }>
-                                        <option value="Standard" selected=move || config.get().shield_level == "Standard">"Standard (Balanced Ad & Tracker Blocking)"</option>
-                                        <option value="Aggressive" selected=move || config.get().shield_level == "Aggressive">"Aggressive (Strict Anti-Fingerprinting)"</option>
-                                        <option value="Off" selected=move || config.get().shield_level == "Off">"Off (No Protection)"</option>
+                                        <option value="Standard" selected=move || config.get().shield_level == "Standard">"Standard (Aggressive Ad & Tracker Filter)"</option>
+                                        <option value="Aggressive" selected=move || config.get().shield_level == "Aggressive">"Aggressive (Strict Anti-Tracking & Fingerprinting)"</option>
+                                        <option value="Off" selected=move || config.get().shield_level == "Off">"Off (No Shield)"</option>
                                     </select>
                                 </div>
                             </div>
@@ -106,7 +121,7 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
 
                         SettingsTab::Dns => view! {
                             <div class="panel-card">
-                                <h2>"Secure DNS (DNS-over-HTTPS)"</h2>
+                                <h2>"Secure DNS (DNS-over-HTTPS RFC 8484)"</h2>
                                 <div class="grid-form">
                                     <label>"DoH Provider Endpoint"</label>
                                     <input type="text" prop:value=doh_input on:input=move |ev| set_doh_input.set(event_target_value(&ev)) />
@@ -120,12 +135,21 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
 
                         SettingsTab::Appearance => view! {
                             <div class="panel-card">
-                                <h2>"Appearance"</h2>
+                                <h2>"Appearance & Themes"</h2>
                                 <div class="grid-form">
                                     <label>"Theme Mode"</label>
-                                    <select>
-                                        <option value="dark" selected=true>"Brave Dark (Default)"</option>
-                                        <option value="light">"Light"</option>
+                                    <select on:change=move |ev| {
+                                        let val = event_target_value(&ev);
+                                        let is_dark = val == "dark";
+                                        let mut c = config.get();
+                                        c.dark_theme = is_dark;
+                                        set_config.set(c);
+                                        spawn_local(async move {
+                                            let _ = call_tauri::<_, ()>("update_setting", &SettingArgs { key: "dark_theme".into(), value: if is_dark { "true".into() } else { "false".into() } }).await;
+                                        });
+                                    }>
+                                        <option value="dark" selected=move || config.get().dark_theme>"Dark (Titanium / Charcoal)"</option>
+                                        <option value="light" selected=move || !config.get().dark_theme>"Light"</option>
                                     </select>
                                 </div>
                             </div>
@@ -136,7 +160,7 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
                                 <h2>"About Caram Browser"</h2>
                                 <p style="font-size:13px; line-height:1.6; color:var(--text-secondary);">
                                     "Caram Browser Version 1.0.0 (Linux x86_64)"<br />
-                                    "Engineered with Tauri v2, WebKitGTK, and 100% Pure Rust (WASM Frontend + Native Core)."<br />
+                                    "Engineered with Tauri v2, WebKitGTK 4.1, and 100% Rust WASM."<br />
                                     "Powered by Brave Adblock Rust Core, Argon2id & AES-256-GCM Vault."
                                 </p>
                             </div>
