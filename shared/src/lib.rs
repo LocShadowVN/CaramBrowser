@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)] // <-- Thêm Default vào đây
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub enum ShieldLevel {
     Off,
-    #[default] // <-- Thêm dòng này trước Standard
+    #[default]
     Standard,
     Aggressive,
 }
@@ -14,6 +14,15 @@ pub struct ShieldVerdict {
     pub rule: Option<String>,
     pub level: ShieldLevel,
     pub cosmetic_css: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PageContentResponse {
+    pub final_url: String,
+    pub title: String,
+    pub html: String,
+    pub blocked_count: u32,
+    pub status: u16,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -70,6 +79,14 @@ pub struct DnsTestResult {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ShieldStats {
+    pub total_blocked: u64,
+    pub trackers_blocked: u64,
+    pub bandwidth_saved_mb: f64,
+    pub time_saved_secs: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct AppConfig {
     pub search_engine: String,
     pub shield_level: String,
@@ -78,4 +95,18 @@ pub struct AppConfig {
     pub download_path: String,
     pub dev_mode_extensions: bool,
     pub dark_theme: bool,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            search_engine: "https://search.brave.com/search?q=".into(),
+            shield_level: "Standard".into(),
+            doh_provider: "Cloudflare".into(),
+            custom_doh_url: "https://cloudflare-dns.com/dns-query".into(),
+            download_path: "/tmp".into(),
+            dev_mode_extensions: true,
+            dark_theme: true,
+        }
+    }
 }
