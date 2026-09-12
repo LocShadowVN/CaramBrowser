@@ -11,6 +11,19 @@
   --hover-bg: rgba(255, 255, 255, 0.08);
 }
 
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --border: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #ea580c;
+  --accent-shield: #059669;
+  --danger: #dc2626;
+  --hover-bg: rgba(0, 0, 0, 0.06);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -79,6 +92,19 @@ body {
   text-overflow: ellipsis;
 }
 
+.tab-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .btn-tab-close {
   padding: 2px;
   border-radius: 4px;
@@ -111,9 +137,13 @@ body {
   align-items: center;
   justify-content: center;
 }
-.icon-btn:hover {
+.icon-btn:hover:not(:disabled) {
   background: var(--hover-bg);
   color: var(--text-primary);
+}
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .omnibox-box {
@@ -357,7 +387,7 @@ input[type="text"], input[type="password"], select {
 /* Speed Dial Newtab */
 .newtab-container {
   max-width: 800px;
-  margin: 60px auto;
+  margin: 40px auto;
   text-align: center;
 }
 .newtab-clock {
@@ -365,11 +395,28 @@ input[type="text"], input[type="password"], select {
   font-weight: 700;
   margin-bottom: 10px;
 }
+.newtab-search-box {
+  display: flex;
+  gap: 8px;
+  max-width: 600px;
+  margin: 0 auto 24px auto;
+}
+.newtab-search-box input {
+  flex: 1;
+  height: 42px;
+  border-radius: 24px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+.newtab-search-box button {
+  border-radius: 24px;
+  padding: 0 20px;
+}
 .privacy-dash {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 15px;
-  margin: 30px 0;
+  margin: 24px 0;
 }
 .dash-box {
   background: var(--bg-secondary);
@@ -389,9 +436,9 @@ input[type="text"], input[type="password"], select {
 }
 .speed-dial-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 15px;
-  margin-top: 30px;
+  margin-top: 20px;
 }
 .dial-item {
   background: var(--bg-secondary);
