@@ -24,6 +24,7 @@ fn main() {
             commands::check_shield,
             commands::set_shield_level,
             commands::resolve_url,
+            commands::fetch_web_page,
             commands::record_history,
             commands::fetch_history,
             commands::clear_history,
@@ -32,6 +33,7 @@ fn main() {
             commands::remove_bookmark,
             commands::fetch_downloads,
             commands::clear_downloads,
+            commands::remove_download,
             commands::open_file_manager,
             commands::fetch_extensions,
             commands::load_unpacked_extension,
@@ -46,6 +48,8 @@ fn main() {
             commands::generate_password,
             commands::get_settings,
             commands::update_setting,
+            commands::get_shield_stats,
+            commands::increment_blocked_stat,
             commands::toggle_devtools
         ])
         .run(tauri::generate_context!())
