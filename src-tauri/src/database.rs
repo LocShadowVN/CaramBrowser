@@ -75,13 +75,14 @@ impl DbManager {
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
-            INSERT OR IGNORE INTO settings (key, value) VALUES ('search_engine', 'https://duckduckgo.com/?q=');
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('search_engine', 'https://search.brave.com/search?q=');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('shield_level', 'Standard');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('doh_provider', 'Cloudflare');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('custom_doh_url', 'https://cloudflare-dns.com/dns-query');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('download_path', '/tmp');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('dev_mode_extensions', 'true');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('dark_theme', 'true');
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('shield_blocked_count', '0');
             ",
         ).expect("Schema migration failure");
 
@@ -189,6 +190,12 @@ impl DbManager {
             "INSERT INTO downloads (filename, url, file_path, file_size, status) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![filename, url, file_path, file_size, status],
         )?;
+        Ok(())
+    }
+
+    pub fn delete_download(&self, id: i64) -> rusqlite::Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM downloads WHERE id = ?1", params![id])?;
         Ok(())
     }
 
@@ -300,10 +307,25 @@ impl DbManager {
         Ok(())
     }
 
+    pub fn get_total_blocked(&self) -> u64 {
+        let conn = self.conn.lock().unwrap();
+        if let Ok(mut stmt) = conn.prepare("SELECT value FROM settings WHERE key = 'shield_blocked_count'") {
+            if let Ok(val) = stmt.query_row([], |r| r.get::<_, String>(0)) {
+                return val.parse::<u64>().unwrap_or(0);
+            }
+        }
+        0
+    }
+
+    pub fn increment_blocked_stat(&self, delta: u64) {
+        let cur = self.get_total_blocked() + delta;
+        let _ = self.save_config_item("shield_blocked_count", &cur.to_string());
+    }
+
     pub fn load_config(&self) -> AppConfig {
         let conn = self.conn.lock().unwrap();
         let mut cfg = AppConfig {
-            search_engine: "https://duckduckgo.com/?q=".into(),
+            search_engine: "https://search.brave.com/search?q=".into(),
             shield_level: "Standard".into(),
             doh_provider: "Cloudflare".into(),
             custom_doh_url: "https://cloudflare-dns.com/dns-query".into(),
