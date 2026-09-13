@@ -5,7 +5,7 @@ mod views;
 use icons::*;
 use leptos::*;
 use serde::Serialize;
-use shared::{AppConfig, BookmarkRecord, PageContentResponse, ShieldVerdict};
+use shared::{AppConfig, BookmarkRecord, PageContentResponse};
 use tauri_ipc::call_tauri;
 use views::{
     bookmarks::BookmarksView, downloads::DownloadsView, extensions::ExtensionsView,
@@ -26,12 +26,6 @@ struct ResolveArgs {
 #[derive(Serialize)]
 struct FetchPageArgs {
     url: String,
-}
-
-#[derive(Serialize)]
-struct ShieldCheckArgs {
-    target: String,
-    host: String,
 }
 
 #[derive(Serialize)]
@@ -93,7 +87,6 @@ fn App() -> impl IntoView {
 
     let (config, set_config) = create_signal(AppConfig::default());
 
-    // Initialize configuration and bookmarks
     spawn_local(async move {
         if let Ok(cfg) = call_tauri::<_, AppConfig>("get_settings", &EmptyArgs {}).await {
             set_config.set(cfg);
@@ -103,7 +96,6 @@ fn App() -> impl IntoView {
         }
     });
 
-    // Theme synchronization
     create_effect(move |_| {
         let is_dark = config.get().dark_theme;
         if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
@@ -113,7 +105,6 @@ fn App() -> impl IntoView {
         }
     });
 
-    // Primary navigation handler
     let navigate = move |target_url: String, record_history: bool| {
         let engine = config.get().search_engine;
         spawn_local(async move {
@@ -239,7 +230,7 @@ fn App() -> impl IntoView {
                 _ => {}
             }
 
-            let resolved: String = call_tauri("resolve_url", &ResolveArgs { raw: target, engine }).await.unwrap_or_default();
+            let resolved: String = call_tauri("resolve_url", &ResolveArgs { raw: target.clone(), engine }).await.unwrap_or_else(|_| target);
             tab.url = resolved.clone();
             tab.title = resolved.clone();
             tab.page_mode = PageMode::Web;
@@ -252,7 +243,7 @@ fn App() -> impl IntoView {
             set_tabs.set(list);
             set_omnibox_text.set(resolved.clone());
 
-            let res: Result<PageContentResponse, _> = call_tauri("fetch_web_page", &FetchPageArgs { url: resolved.clone() }).await;
+            let res: Result<PageContentResponse, _> = call_tauri("fetch_web_page", &FetchPageArgs { url: resolved }).await;
             let mut list_after = tabs.get();
             if let Some(t) = list_after.iter_mut().find(|x| x.id == cur_id) {
                 t.is_loading = false;
@@ -278,7 +269,6 @@ fn App() -> impl IntoView {
         });
     };
 
-    // Install global message & shortcut listener
     let nav_msg = navigate;
     create_effect(move |_| {
         if let Some(window) = web_sys::window() {
@@ -397,7 +387,6 @@ fn App() -> impl IntoView {
             </header>
 
             <div class="nav-bar">
-                // Back Button
                 <button
                     class="icon-btn"
                     disabled=move || {
@@ -412,14 +401,13 @@ fn App() -> impl IntoView {
                             if tab.history_index > 0 {
                                 tab.history_index -= 1;
                                 let prev = tab.history[tab.history_index].clone();
-                                drop(list);
+                                set_tabs.set(list);
                                 navigate(prev, false);
                             }
                         }
                     }
                 ><IconBack /></button>
 
-                // Forward Button
                 <button
                     class="icon-btn"
                     disabled=move || {
@@ -434,14 +422,13 @@ fn App() -> impl IntoView {
                             if tab.history_index + 1 < tab.history.len() {
                                 tab.history_index += 1;
                                 let next = tab.history[tab.history_index].clone();
-                                drop(list);
+                                set_tabs.set(list);
                                 navigate(next, false);
                             }
                         }
                     }
                 ><IconForward /></button>
 
-                // Reload Button
                 <button
                     class="icon-btn"
                     on:click=move |_| {
