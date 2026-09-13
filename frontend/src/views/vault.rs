@@ -47,7 +47,7 @@ pub fn VaultView() -> impl IntoView {
         }
     });
 
-    let generate_random = move |_| {
+    let do_generate_random = move || {
         spawn_local(async move {
             if let Ok(pw) = call_tauri::<_, String>("generate_password", &GenPassArgs { length: 22 }).await {
                 set_sec_input.set(pw);
@@ -55,12 +55,12 @@ pub fn VaultView() -> impl IntoView {
         });
     };
 
-    let unlock = move |_| {
+    let do_unlock = move || {
         let p = master_input.get();
         let p_clone = p.clone();
         set_error_msg.set(None);
         spawn_local(async move {
-            let res: Result<Vec<DecryptedVaultRecord>, _> = call_tauri("vault_read_all", &MasterPassArgs { master_pass: p.clone() }).await;
+            let res: Result<Vec<DecryptedVaultRecord>, _> = call_tauri("vault_read_all", &MasterPassArgs { master_pass: p }).await;
             match res {
                 Ok(list) => {
                     set_creds.set(list);
@@ -74,7 +74,22 @@ pub fn VaultView() -> impl IntoView {
         });
     };
 
-    let save_cred = move |_| {
+    let do_setup = move || {
+        let p = master_input.get();
+        if p.len() < 8 {
+            set_error_msg.set(Some("Password must be at least 8 characters".into()));
+            return;
+        }
+        spawn_local(async move {
+            if call_tauri::<_, ()>("vault_setup", &MasterPassArgs { master_pass: p }).await.is_ok() {
+                set_configured.set(true);
+                set_error_msg.set(None);
+                set_master_input.set(String::new());
+            }
+        });
+    };
+
+    let do_save_cred = move || {
         if let Some(pass) = unlocked_pass.get() {
             let site = site_input.get();
             let user = user_input.get();
@@ -128,20 +143,13 @@ pub fn VaultView() -> impl IntoView {
                                 type="password"
                                 prop:value=master_input
                                 on:input=move |ev| set_master_input.set(event_target_value(&ev))
-                            />
-                            <button class="btn-action" on:click=move |_| {
-                                let p = master_input.get();
-                                if p.len() < 8 {
-                                    set_error_msg.set(Some("Password must be at least 8 characters".into()));
-                                    return;
-                                }
-                                spawn_local(async move {
-                                    if call_tauri::<_, ()>("vault_setup", &MasterPassArgs { master_pass: p }).await.is_ok() {
-                                        set_configured.set(true);
-                                        set_error_msg.set(None);
+                                on:keydown=move |ev: web_sys::KeyboardEvent| {
+                                    if ev.key() == "Enter" {
+                                        do_setup();
                                     }
-                                });
-                            }>"Set Master Password"</button>
+                                }
+                            />
+                            <button class="btn-action" on:click=move |_| do_setup()>"Set Master Password"</button>
                         </div>
                     </div>
                 }.into_view()
@@ -156,10 +164,12 @@ pub fn VaultView() -> impl IntoView {
                                 prop:value=master_input
                                 on:input=move |ev| set_master_input.set(event_target_value(&ev))
                                 on:keydown=move |ev: web_sys::KeyboardEvent| {
-                                    if ev.key() == "Enter" { unlock(()); }
+                                    if ev.key() == "Enter" {
+                                        do_unlock();
+                                    }
                                 }
                             />
-                            <button class="btn-action" on:click=unlock>"Unlock"</button>
+                            <button class="btn-action" on:click=move |_| do_unlock()>"Unlock"</button>
                         </div>
                     </div>
                 }.into_view()
@@ -179,9 +189,9 @@ pub fn VaultView() -> impl IntoView {
                             <input type="text" placeholder="Username / Email" prop:value=user_input on:input=move |ev| set_user_input.set(event_target_value(&ev)) />
                             <div style="display:flex; gap:10px;">
                                 <input type="text" placeholder="Password" prop:value=sec_input on:input=move |ev| set_sec_input.set(event_target_value(&ev)) style="flex:1;" />
-                                <button class="btn-action" style="background:var(--bg-tertiary)" on:click=generate_random>"Generate Strong"</button>
+                                <button class="btn-action" style="background:var(--bg-tertiary)" on:click=move |_| do_generate_random()>"Generate Strong"</button>
                             </div>
-                            <button class="btn-action" on:click=save_cred>"Save to Vault"</button>
+                            <button class="btn-action" on:click=move |_| do_save_cred()>"Save to Vault"</button>
                         </div>
 
                         <table class="data-table">
