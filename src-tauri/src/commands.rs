@@ -7,9 +7,203 @@ use shared::{
     AppConfig, BookmarkRecord, DecryptedVaultRecord, DnsTestResult, DownloadRecord, ExtensionItem,
     HistoryRecord, PageContentResponse, ShieldLevel, ShieldStats, ShieldVerdict,
 };
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
-use tauri::{AppHandle, Manager, State};
+use std::sync::Mutex;
+use tauri::{
+    webview::WebviewBuilder,
+    AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalSize, State, WebviewUrl,
+};
+
+pub const NAV_BAR_HEIGHT: f64 = 104.0;
+
+pub struct ViewportManager {
+    pub active_tab: Mutex<String>,
+    pub is_internal: Mutex<bool>,
+    pub menu_expanded: Mutex<bool>,
+}
+
+impl ViewportManager {
+    pub fn new() -> Self {
+        Self {
+            active_tab: Mutex::new(String::new()),
+            is_internal: Mutex::new(true),
+            menu_expanded: Mutex::new(false),
+        }
+    }
+}
+
+pub async fn handle_window_resize(app: &AppHandle, phys_size: PhysicalSize<u32>) -> Result<(), String> {
+    let window = app.get_window("main").ok_or("Main window not found")?;
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let logical = phys_size.to_logical::<f64>(scale);
+
+    let vp_state = app.state::<ViewportManager>();
+    let is_internal = *vp_state.is_internal.lock().unwrap();
+    let menu_expanded = *vp_state.menu_expanded.lock().unwrap();
+    let active_id = vp_state.active_tab.lock().unwrap().clone();
+
+    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+        let ui_height = if is_internal || menu_expanded {
+            logical.height
+        } else {
+            NAV_BAR_HEIGHT
+        };
+        let _ = ui_wv.set_size(LogicalSize::new(logical.width, ui_height));
+    }
+
+    if !is_internal && !active_id.is_empty() {
+        if let Some(content_wv) = app.get_webview(&active_id) {
+            let content_height = (logical.height - NAV_BAR_HEIGHT).max(100.0);
+            let _ = content_wv.set_position(LogicalPosition::new(0.0, NAV_BAR_HEIGHT));
+            let _ = content_wv.set_size(LogicalSize::new(logical.width, content_height));
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn open_native_tab(
+    app: AppHandle,
+    shield: State<'_, ShieldEngine>,
+    vp: State<'_, ViewportManager>,
+    db: State<'_, DbManager>,
+    tab_id: String,
+    url: String,
+) -> Result<(), String> {
+    let window = app.get_window("main").ok_or("Main window not found")?;
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let phys_size = window.inner_size().unwrap_or(PhysicalSize::new(1400, 900));
+    let logical = phys_size.to_logical::<f64>(scale);
+
+    let parsed_url = url::Url::parse(&url).map_err(|e| e.to_string())?;
+
+    {
+        let mut act = vp.active_tab.lock().unwrap();
+        *act = tab_id.clone();
+        let mut internal = vp.is_internal.lock().unwrap();
+        *internal = false;
+        let mut menu = vp.menu_expanded.lock().unwrap();
+        *menu = false;
+    }
+
+    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+        let _ = ui_wv.set_size(LogicalSize::new(logical.width, NAV_BAR_HEIGHT));
+    }
+
+    let content_height = (logical.height - NAV_BAR_HEIGHT).max(100.0);
+    let content_pos = LogicalPosition::new(0.0, NAV_BAR_HEIGHT);
+    let content_size = LogicalSize::new(logical.width, content_height);
+
+    if let Some(wv) = app.get_webview(&tab_id) {
+        let _ = wv.set_position(content_pos);
+        let _ = wv.set_size(content_size);
+        let _ = wv.show();
+        let _ = wv.set_focus();
+        wv.navigate(parsed_url).map_err(|e| e.to_string())?;
+    } else {
+        let init_script = shield.get_injected_script();
+        let wv_builder = WebviewBuilder::new(&tab_id, WebviewUrl::External(parsed_url))
+            .initialization_script(&init_script);
+
+        let wv = window.add_child(wv_builder, content_pos, content_size)
+            .map_err(|e| e.to_string())?;
+        let _ = wv.set_focus();
+    }
+
+    let _ = db.insert_history(&url, &url);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn switch_tab_view(
+    app: AppHandle,
+    vp: State<'_, ViewportManager>,
+    active_tab_id: String,
+    is_internal: bool,
+    all_tab_ids: Vec<String>,
+) -> Result<(), String> {
+    let window = app.get_window("main").ok_or("Main window not found")?;
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let phys_size = window.inner_size().unwrap_or(PhysicalSize::new(1400, 900));
+    let logical = phys_size.to_logical::<f64>(scale);
+
+    {
+        let mut act = vp.active_tab.lock().unwrap();
+        *act = active_tab_id.clone();
+        let mut internal = vp.is_internal.lock().unwrap();
+        *internal = is_internal;
+        let mut menu = vp.menu_expanded.lock().unwrap();
+        *menu = false;
+    }
+
+    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+        let ui_height = if is_internal { logical.height } else { NAV_BAR_HEIGHT };
+        let _ = ui_wv.set_size(LogicalSize::new(logical.width, ui_height));
+    }
+
+    for id in all_tab_ids {
+        if let Some(wv) = app.get_webview(&id) {
+            if !is_internal && id == active_tab_id {
+                let content_height = (logical.height - NAV_BAR_HEIGHT).max(100.0);
+                let _ = wv.set_position(LogicalPosition::new(0.0, NAV_BAR_HEIGHT));
+                let _ = wv.set_size(LogicalSize::new(logical.width, content_height));
+                let _ = wv.show();
+                let _ = wv.set_focus();
+            } else {
+                let _ = wv.hide();
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn close_native_tab(
+    app: AppHandle,
+    vp: State<'_, ViewportManager>,
+    tab_id: String,
+) -> Result<(), String> {
+    if let Some(wv) = app.get_webview(&tab_id) {
+        let _ = wv.close();
+    }
+    let mut act = vp.active_tab.lock().unwrap();
+    if *act == tab_id {
+        act.clear();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn expand_ui_for_menu(
+    app: AppHandle,
+    vp: State<'_, ViewportManager>,
+    expanded: bool,
+) -> Result<(), String> {
+    let window = app.get_window("main").ok_or("Main window not found")?;
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let phys_size = window.inner_size().unwrap_or(PhysicalSize::new(1400, 900));
+    let logical = phys_size.to_logical::<f64>(scale);
+
+    let is_internal = *vp.is_internal.lock().unwrap();
+    {
+        let mut menu = vp.menu_expanded.lock().unwrap();
+        *menu = expanded;
+    }
+
+    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+        let ui_height = if is_internal || expanded {
+            logical.height
+        } else {
+            NAV_BAR_HEIGHT
+        };
+        let _ = ui_wv.set_size(LogicalSize::new(logical.width, ui_height));
+    }
+
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn check_shield(
@@ -65,32 +259,10 @@ pub async fn fetch_web_page(
 ) -> Result<PageContentResponse, String> {
     let verdict = shield.inspect_url(&url, &url).await;
     if verdict.blocked {
-        let blocked_html = format!(r#"
-            <!DOCTYPE html>
-            <html>
-            <head><meta charset="utf-8"><title>Blocked by Caram Shield</title>
-            <style>
-                body {{ background: #0e1013; color: #e6e8eb; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
-                .card {{ background: #16181d; border: 1px solid #ef4444; border-radius: 12px; padding: 32px; max-width: 480px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
-                h1 {{ color: #ef4444; font-size: 22px; margin-bottom: 12px; }}
-                p {{ color: #8c929d; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }}
-                code {{ background: #20232a; padding: 4px 8px; border-radius: 4px; color: #f97316; font-size: 12px; word-break: break-all; }}
-            </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1>Shield Protection Triggered</h1>
-                    <p>Caram Shield blocked this destination because it matches known tracking or advertisement filter rules.</p>
-                    <p>Blocked Target: <code>{}</code></p>
-                </div>
-            </body>
-            </html>
-        "#, url);
-
         return Ok(PageContentResponse {
             final_url: url,
             title: "Blocked by Caram Shield".into(),
-            html: blocked_html,
+            html: "<h1>Blocked</h1>".into(),
             blocked_count: 1,
             status: 403,
         });
@@ -102,212 +274,19 @@ pub async fn fetch_web_page(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let resp = client.get(&url)
-        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-        .send()
-        .await
-        .map_err(|e| format!("Network request failed: {}", e))?;
-
+    let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
     let final_url = resp.url().to_string();
     let status = resp.status().as_u16();
-    let content_type = resp.headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_lowercase();
-
-    if !content_type.contains("text/html") && !content_type.contains("text/plain") && !content_type.contains("application/xhtml") {
-        let config = db.load_config();
-        let download_dir = PathBuf::from(&config.download_path);
-        let _ = tokio::fs::create_dir_all(&download_dir).await;
-
-        let filename = resp.url().path_segments()
-            .and_then(|s| s.filter(|segment| !segment.is_empty()).last())
-            .unwrap_or("download.bin")
-            .to_string();
-
-        let target_path = download_dir.join(&filename);
-        let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-        let size_str = format!("{:.2} MB", bytes.len() as f64 / (1024.0 * 1024.0));
-        let _ = tokio::fs::write(&target_path, &bytes).await;
-        let _ = db.insert_download(&filename, &final_url, target_path.to_str().unwrap_or(""), &size_str, "Completed");
-
-        let download_html = format!(r#"
-            <!DOCTYPE html>
-            <html>
-            <head><meta charset="utf-8"><title>Download Completed</title>
-            <style>
-                body {{ background: #0e1013; color: #e6e8eb; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
-                .card {{ background: #16181d; border: 1px solid #10b981; border-radius: 12px; padding: 32px; max-width: 480px; text-align: center; }}
-                h1 {{ color: #10b981; font-size: 20px; margin-bottom: 12px; }}
-                p {{ color: #8c929d; font-size: 13px; line-height: 1.6; }}
-                code {{ background: #20232a; padding: 4px 8px; border-radius: 4px; color: #f97316; font-size: 12px; }}
-            </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1>Download Completed</h1>
-                    <p>File: <strong>{}</strong> ({})</p>
-                    <p>Saved in: <code>{}</code></p>
-                </div>
-            </body>
-            </html>
-        "#, filename, size_str, target_path.display());
-
-        return Ok(PageContentResponse {
-            final_url,
-            title: format!("Downloaded: {}", filename),
-            html: download_html,
-            blocked_count: 0,
-            status,
-        });
-    }
-
-    let raw_html = resp.text().await.map_err(|e| e.to_string())?;
-
-    let title = extract_title(&raw_html).unwrap_or_else(|| {
-        url::Url::parse(&final_url)
-            .ok()
-            .and_then(|u| u.host_str().map(|h| h.to_string()))
-            .unwrap_or_else(|| final_url.clone())
-    });
-
-    let _ = db.insert_history(&final_url, &title);
-
-    let processed_html = process_html(&raw_html, &final_url, &verdict.cosmetic_css);
+    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let _ = db.insert_history(&final_url, &final_url);
 
     Ok(PageContentResponse {
         final_url,
-        title,
-        html: processed_html,
+        title: "Web Resource".into(),
+        html: text,
         blocked_count: 0,
         status,
     })
-}
-
-fn extract_title(html: &str) -> Option<String> {
-    let lower = html.to_lowercase();
-    let start_tag = "<title>";
-    let end_tag = "</title>";
-    let start_idx = lower.find(start_tag)? + start_tag.len();
-    let end_idx = lower[start_idx..].find(end_tag)? + start_idx;
-    let t = html[start_idx..end_idx].trim();
-    if t.is_empty() { None } else { Some(t.to_string()) }
-}
-
-fn process_html(html: &str, base_url: &str, cosmetic_css: &str) -> String {
-    let base_tag = format!("<base href=\"{}\">\n", base_url);
-    let cosmetic_tag = format!(
-        "<style id=\"caram-shield-cosmetic\">\n{}\n</style>\n",
-        cosmetic_css
-    );
-    let bridge_script = r#"
-    <script id="caram-bridge-core">
-    (function() {
-        window.chrome = {
-            runtime: { id: "caram-runtime", getManifest: () => ({ name: "Caram Browser" }) },
-            app: { isInstalled: false },
-            csi: function() {},
-            loadTimes: function() { return { requestTime: performance.now() }; }
-        };
-
-        function reportState() {
-            try {
-                window.parent.postMessage({
-                    type: 'CARAM_METADATA',
-                    title: document.title || window.location.href,
-                    url: window.location.href
-                }, '*');
-            } catch(e) {}
-        }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', reportState);
-        } else {
-            reportState();
-        }
-
-        new MutationObserver(() => reportState()).observe(
-            document.querySelector('title') || document.head || document.documentElement,
-            { subtree: true, characterData: true, childList: true }
-        );
-
-        document.addEventListener('click', function(e) {
-            let target = e.target;
-            while (target && target.tagName !== 'A') {
-                target = target.parentElement;
-            }
-            if (target && target.href && !target.href.startsWith('javascript:')) {
-                e.preventDefault();
-                window.parent.postMessage({
-                    type: 'CARAM_NAVIGATE',
-                    url: target.href
-                }, '*');
-            }
-        }, true);
-
-        const BLOCKED_PATTERNS = [
-            'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
-            'adnxs.com', 'facebook.com/tr', 'adroll.com', 'taboola.com',
-            'outbrain.com', 'criteo.com', 'scorecardresearch.com',
-            'hotjar.com', 'zedo.com', 'moatads.com', 'advertising.com',
-            'quantserve.com', 'popads.net', 'amazon-adsystem.com',
-            'rubiconproject.com', 'openx.net', 'smartadserver.com'
-        ];
-
-        function isTracker(url) {
-            if (!url) return false;
-            for (let i = 0; i < BLOCKED_PATTERNS.length; i++) {
-                if (url.indexOf(BLOCKED_PATTERNS[i]) !== -1) return true;
-            }
-            return false;
-        }
-
-        const obs = new MutationObserver((mutations) => {
-            let count = 0;
-            for (const m of mutations) {
-                for (const node of m.addedNodes) {
-                    if (node.nodeType === 1) {
-                        const src = node.src || node.getAttribute('src');
-                        if (src && isTracker(src)) {
-                            node.src = 'about:blank';
-                            node.remove();
-                            count++;
-                        }
-                    }
-                }
-            }
-            if (count > 0) {
-                window.parent.postMessage({ type: 'CARAM_SHIELD_BLOCK', count: count }, '*');
-            }
-        });
-        if (document.documentElement) {
-            obs.observe(document.documentElement, { childList: true, subtree: true });
-        }
-
-        const origFetch = window.fetch;
-        window.fetch = function(input, init) {
-            const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
-            if (isTracker(url)) {
-                window.parent.postMessage({ type: 'CARAM_SHIELD_BLOCK', count: 1 }, '*');
-                return Promise.resolve(new Response('', { status: 204, statusText: 'Blocked' }));
-            }
-            return origFetch.apply(this, arguments);
-        };
-    })();
-    </script>
-    "#;
-
-    let injection = format!("{}{}{}", base_tag, cosmetic_tag, bridge_script);
-    let lower = html.to_lowercase();
-    if let Some(pos) = lower.find("<head>") {
-        let insert_at = pos + 6;
-        format!("{}{}{}", &html[..insert_at], injection, &html[insert_at..])
-    } else if let Some(pos) = lower.find("<html>") {
-        let insert_at = pos + 6;
-        format!("{}{}{}", &html[..insert_at], injection, &html[insert_at..])
-    } else {
-        format!("{}{}", injection, html)
-    }
 }
 
 #[tauri::command]

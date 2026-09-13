@@ -2,6 +2,7 @@ use adblock::lists::{FilterFormat, ParseOptions};
 use adblock::request::Request;
 use adblock::Engine;
 use shared::{ShieldLevel, ShieldVerdict};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Mutex, RwLock};
@@ -21,87 +22,87 @@ pub struct ShieldEngine {
     blocked_count: AtomicU64,
 }
 
+fn resolve_bundled_rules_path() -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+
+    // 1. Ưu tiên file người dùng tự override tại ~/.local/share/caram-browser/
+    if let Some(mut data_dir) = dirs::data_local_dir() {
+        data_dir.push("caram-browser");
+        data_dir.push("custom_rules.txt");
+        candidates.push(data_dir);
+    }
+
+    // 2. Kiểm tra AppImage runtime ($APPDIR)
+    if let Ok(appdir) = std::env::var("APPDIR") {
+        candidates.push(PathBuf::from(&appdir).join("usr/lib/caram-browser/resources/rules.txt"));
+        candidates.push(PathBuf::from(&appdir).join("usr/lib/caram_browser/resources/rules.txt"));
+        candidates.push(PathBuf::from(&appdir).join("usr/bin/resources/rules.txt"));
+        candidates.push(PathBuf::from(&appdir).join("resources/rules.txt"));
+    }
+
+    // 3. Kiểm tra theo đường dẫn cài đặt hệ thống của file .deb (/usr/lib/...)
+    candidates.push(PathBuf::from("/usr/lib/caram-browser/resources/rules.txt"));
+    candidates.push(PathBuf::from("/usr/lib/caram_browser/resources/rules.txt"));
+    candidates.push(PathBuf::from("/usr/share/caram-browser/resources/rules.txt"));
+
+    // 4. Kiểm tra tương đối với thư mục chứa binary thực thi
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            candidates.push(parent.join("resources/rules.txt"));
+            candidates.push(parent.join("../lib/caram-browser/resources/rules.txt"));
+            candidates.push(parent.join("../lib/caram_browser/resources/rules.txt"));
+        }
+    }
+
+    // 5. Kiểm tra môi trường chạy local dev
+    candidates.push(PathBuf::from("resources/rules.txt"));
+    candidates.push(PathBuf::from("src-tauri/resources/rules.txt"));
+
+    candidates.into_iter().find(|p| p.exists())
+}
+
 impl ShieldEngine {
     pub fn new() -> Self {
         let (tx, rx) = channel::<ShieldJob>();
 
         thread::spawn(move || {
-            let brave_filters = vec![
-                // Core tracker & ad networks
-                "||doubleclick.net^$third-party",
-                "||google-analytics.com^",
-                "||googlesyndication.com^",
-                "||googleadservices.com^",
-                "||adservice.google.com^",
-                "||pagead2.googlesyndication.com^",
-                "||adnxs.com^",
-                "||facebook.com/tr/*",
-                "||connect.facebook.net/*/fbevents.js",
-                "||adroll.com^",
-                "||taboola.com^",
-                "||outbrain.com^",
-                "||criteo.com^",
-                "||criteo.net^",
-                "||scorecardresearch.com^",
-                "||hotjar.com^",
-                "||zedo.com^",
-                "||moatads.com^",
-                "||advertising.com^",
-                "||quantserve.com^",
-                "||popads.net^",
-                "||popcash.net^",
-                "||propellerads.com^",
-                "||amazon-adsystem.com^",
-                "||rubiconproject.com^",
-                "||pubmatic.com^",
-                "||casalemedia.com^",
-                "||openx.net^",
-                "||smartadserver.com^",
-                "||bidswitch.net^",
-                "||yieldmo.com^",
-                "||revcontent.com^",
-                "||infolinks.com^",
-                "||media.net^",
-                "||sovrn.com^",
-                "||mgid.com^",
-                "||exponential.com^",
-                "||adcolony.com^",
-                "||chartbeat.com^",
-                "||crazyegg.com^",
-                "||yandex.ru/metrika/*",
-                "||mc.yandex.ru/*",
-                "/ads/*",
-                "/adbanner/*",
-                "/ad-service/*",
-                "/telemetry/*",
-                "/beacon/*",
-                "*-analytics.*",
-                "*-tracker.*",
-                // Cosmetic selectors
-                "##.ad-banner",
-                "##.adsbygoogle",
-                "##[id^='google_ads_']",
-                "##[id^='div-gpt-ad']",
-                "##.ad-container",
-                "##.ad-wrapper",
-                "##.ad-slot",
-                "##.ad_box",
-                "##.advertisement",
-                "##.sponsored-post",
-                "##.taboola-ad",
-                "##.outbrain-ad",
-                "##[class*='sponsored']",
-                "##[data-ad-client]",
-                "##[data-google-query-id]",
-                "##iframe[src*='doubleclick']",
-                "##iframe[src*='adnxs']",
-                "##.cookie-banner",
-                "##.consent-banner",
-                "##[id*='cookie-notice']",
+            let mut rules: Vec<String> = vec![
+                // Embedded baseline fallback rules
+                "||doubleclick.net^$third-party".into(),
+                "||googleadservices.com^".into(),
+                "||pagead2.googlesyndication.com^".into(),
+                "||google-analytics.com^".into(),
+                "||analytics.google.com^".into(),
+                "||googletagmanager.com/gtm.js*".into(),
+                "||adnxs.com^".into(),
+                "||adroll.com^".into(),
+                "||taboola.com^".into(),
+                "||outbrain.com^".into(),
+                "||criteo.com^".into(),
+                "||facebook.com/tr/*".into(),
+                "||hotjar.com^".into(),
+                "||onetrust.com^".into(),
+                "||cookielaw.org^".into(),
+                "||cookiebot.com^".into(),
+                "/ads/*".into(),
+                "/adbanner/*".into(),
+                "/telemetry/*".into(),
             ];
 
+            // Tự động nạp file 300.000 rules được đóng gói đi kèm ứng dụng
+            if let Some(rules_path) = resolve_bundled_rules_path() {
+                if let Ok(content) = std::fs::read_to_string(&rules_path) {
+                    for line in content.lines() {
+                        let trimmed = line.trim();
+                        if !trimmed.is_empty() && !trimmed.starts_with('!') && !trimmed.starts_with('#') {
+                            rules.push(trimmed.to_string());
+                        }
+                    }
+                }
+            }
+
             let engine = Engine::from_rules(
-                brave_filters.iter().copied(),
+                rules.iter().map(|s| s.as_str()),
                 ParseOptions {
                     format: FilterFormat::Standard,
                     ..Default::default()
@@ -146,23 +147,166 @@ impl ShieldEngine {
         self.blocked_count.fetch_add(delta, Ordering::Relaxed);
     }
 
-    pub async fn inspect_url(&self, target_url: &str, host_url: &str) -> ShieldVerdict {
-        let level = self.get_level();
-        let cosmetic_css = r#"
+    pub fn get_cosmetic_css(&self) -> &'static str {
+        r#"
             .ad-banner, .adsbygoogle, [id^='google_ads_'], [id^='div-gpt-ad'],
             .ad-container, .ad-wrapper, .ad-slot, .ad_box, .advertisement,
             .sponsored-post, .taboola-ad, .outbrain-ad, [class*='sponsored'],
             [data-ad-client], [data-google-query-id], iframe[src*='doubleclick'],
-            iframe[src*='adnxs'], .cookie-banner, .consent-banner, [id*='cookie-notice'] {
+            iframe[src*='adnxs'], .video-ads, .ytp-ad-module, .ytp-ad-overlay-container,
+            #onetrust-consent-sdk, #onetrust-banner-sdk, .onetrust-pc-dark,
+            #CybotCookiebotDialog, #CybotCookiebotDialogBody,
+            .cc-window, .cc-banner, .cc-floating, .cc-dialog,
+            #qc-cmp2-container, #qc-cmp2-ui,
+            .cookie-banner, .cookie-notice, .cookie-consent, .cookie-popup,
+            .cookie-policy-banner, [id*='cookie-notice'], [id*='cookiebanner'],
+            [id*='cookie-law-info'], [id*='cookieConsent'], [class*='cookie-consent'],
+            [class*='cookie-banner'], [class*='cookie-notice'], [class*='cookiebar'],
+            [aria-label*='cookie' i], [aria-label*='consent' i],
+            .fc-consent-root, .fc-dialog-overlay, .fc-dialog-container,
+            #iubenda-cs-banner, .iubenda-cs-content,
+            .cmp-container, #cmpbox, #cmpbox2,
+            .sp_veil, .message-container, [id^='sp_message_container_'] {
                 display: none !important;
                 visibility: hidden !important;
-                height: 0 !important;
-                max-height: 0 !important;
                 opacity: 0 !important;
                 pointer-events: none !important;
+                height: 0 !important;
+                max-height: 0 !important;
+                z-index: -99999 !important;
             }
-        "#;
+            html, body {
+                overflow: auto !important;
+                position: static !important;
+            }
+        "#
+    }
 
+    pub fn get_injected_script(&self) -> String {
+        let css = self.get_cosmetic_css();
+        format!(r#"
+            (function() {{
+                try {{
+                    const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
+                    HTMLCanvasElement.prototype.toDataURL = function() {{
+                        const ctx = this.getContext('2d');
+                        if (ctx && this.width > 16 && this.height > 16) {{
+                            try {{
+                                const imgData = ctx.getImageData(0, 0, 2, 2);
+                                imgData.data[0] = (imgData.data[0] ^ 1);
+                                ctx.putImageData(imgData, 0, 0);
+                            }} catch(e) {{}}
+                        }}
+                        return origToDataURL.apply(this, arguments);
+                    }};
+
+                    const origGetImageData = CanvasRenderingContext2D.prototype.getImageData;
+                    CanvasRenderingContext2D.prototype.getImageData = function() {{
+                        const res = origGetImageData.apply(this, arguments);
+                        if (res && res.data && res.data.length > 4) {{
+                            res.data[0] = (res.data[0] ^ 1);
+                        }}
+                        return res;
+                    }};
+
+                    if (window.AudioBuffer) {{
+                        const origGetChannelData = AudioBuffer.prototype.getChannelData;
+                        AudioBuffer.prototype.getChannelData = function() {{
+                            const data = origGetChannelData.apply(this, arguments);
+                            if (data && data.length > 0) {{
+                                data[0] = data[0] + 0.00000001;
+                            }}
+                            return data;
+                        }};
+                    }}
+
+                    Object.defineProperty(navigator, 'webdriver', {{ get: () => false }});
+                    if (navigator.getBattery) {{
+                        navigator.getBattery = () => Promise.reject();
+                    }}
+                }} catch(e) {{}}
+
+                window.chrome = {{
+                    runtime: {{ id: "caram-runtime", getManifest: () => ({{ name: "Caram Browser" }}) }},
+                    app: {{ isInstalled: false }},
+                    csi: function() {{}},
+                    loadTimes: function() {{ return {{ requestTime: performance.now() }}; }}
+                }};
+                window.canRunAds = true;
+                window.isAdBlockActive = false;
+                window.ga = function() {{}};
+                window.ga.q = [];
+                window.gtag = function() {{}};
+                window.fbq = function() {{}};
+
+                const stubCmp = function(cmd, ver, cb) {{
+                    if (typeof cb === 'function') {{
+                        cb({{ eventStatus: 'tcloaded', gdprApplies: false, tcString: '' }}, true);
+                    }}
+                }};
+                window.__tcfapi = stubCmp;
+                window.__cmp = stubCmp;
+                window.OneTrust = {{ IsAlertBoxClosed: () => true, Close: () => {{}} }};
+                window.Cookiebot = {{ consented: true, declined: false, hide: () => {{}} }};
+
+                if (navigator.sendBeacon) {{
+                    navigator.sendBeacon = () => true;
+                }}
+
+                const BLOCKED_DOMAINS = [
+                    'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
+                    'googleadservices.com', 'adnxs.com', 'facebook.com/tr',
+                    'adroll.com', 'taboola.com', 'outbrain.com', 'criteo.com',
+                    'scorecardresearch.com', 'hotjar.com', 'moatads.com',
+                    'advertising.com', 'popads.net', 'amazon-adsystem.com',
+                    'rubiconproject.com', 'openx.net', 'smartadserver.com',
+                    'onetrust.com', 'cookielaw.org', 'cookiebot.com', 'clarity.ms'
+                ];
+
+                function isTrackingUrl(url) {{
+                    if (!url) return false;
+                    for (let i = 0; i < BLOCKED_DOMAINS.length; i++) {{
+                        if (url.indexOf(BLOCKED_DOMAINS[i]) !== -1) return true;
+                    }}
+                    return false;
+                }}
+
+                const origFetch = window.fetch;
+                window.fetch = function(input, init) {{
+                    const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+                    if (isTrackingUrl(url)) {{
+                        return Promise.resolve(new Response('', {{ status: 204, statusText: 'Blocked by Caram Shield' }}));
+                    }}
+                    return origFetch.apply(this, arguments);
+                }};
+
+                const origOpen = XMLHttpRequest.prototype.open;
+                XMLHttpRequest.prototype.open = function(method, url) {{
+                    if (isTrackingUrl(url)) {{
+                        this.abort();
+                        return;
+                    }}
+                    return origOpen.apply(this, arguments);
+                }};
+
+                const injectCss = () => {{
+                    if (document.getElementById('caram-shield-cosmetics')) return;
+                    const style = document.createElement('style');
+                    style.id = 'caram-shield-cosmetics';
+                    style.textContent = `{}`;
+                    (document.head || document.documentElement).appendChild(style);
+                }};
+                if (document.readyState === 'loading') {{
+                    document.addEventListener('DOMContentLoaded', injectCss);
+                }} else {{
+                    injectCss();
+                }}
+            }})();
+        "#, css)
+    }
+
+    pub async fn inspect_url(&self, target_url: &str, host_url: &str) -> ShieldVerdict {
+        let level = self.get_level();
         if level == ShieldLevel::Off {
             return ShieldVerdict {
                 blocked: false,
@@ -195,9 +339,9 @@ impl ShieldEngine {
 
         ShieldVerdict {
             blocked: is_blocked,
-            rule: if is_blocked { Some("Brave Engine Filter Match".into()) } else { None },
+            rule: if is_blocked { Some("Brave Engine Match".into()) } else { None },
             level,
-            cosmetic_css: cosmetic_css.into(),
+            cosmetic_css: self.get_cosmetic_css().to_string(),
         }
     }
 }

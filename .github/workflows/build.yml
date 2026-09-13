@@ -69,6 +69,16 @@ jobs:
         run: |
           cargo tauri build
 
+      - name: Fetch and Bundle 300k+ Adblock & Cookie Rules
+        run: |
+          mkdir -p src-tauri/resources
+          curl -sL \
+            https://easylist.to/easylist/easylist.txt \
+            https://easylist.to/easylist/easyprivacy.txt \
+            https://secure.fanboy.co.nz/fanboy-annoyance.txt \
+            > src-tauri/resources/rules.txt
+          echo "Bundled $(wc -l < src-tauri/resources/rules.txt) rules into installer."
+
       - name: List Generated Bundles
         run: |
           echo "=== Kiem tra thu muc chua file build ==="
