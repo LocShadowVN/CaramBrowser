@@ -36,8 +36,11 @@ pub fn ExtensionsView() -> impl IntoView {
     };
     load_exts();
 
-    let load_unpacked = move |_| {
+    let do_load_unpacked = move || {
         let p = path_input.get();
+        if p.trim().is_empty() {
+            return;
+        }
         spawn_local(async move {
             let _ = call_tauri::<_, ExtensionItem>("load_unpacked_extension", &LoadUnpackedArgs { folder_path: p }).await;
             if let Ok(res) = call_tauri::<_, Vec<ExtensionItem>>("fetch_extensions", &EmptyArgs {}).await {
@@ -55,8 +58,19 @@ pub fn ExtensionsView() -> impl IntoView {
                 </p>
 
                 <div style="display:flex; gap:10px; margin-bottom:20px;">
-                    <input type="text" placeholder="/path/to/extension_folder" prop:value=path_input on:input=move |ev| set_path_input.set(event_target_value(&ev)) style="flex:1;" />
-                    <button class="btn-action" on:click=load_unpacked>"Load Unpacked"</button>
+                    <input
+                        type="text"
+                        placeholder="/path/to/extension_folder"
+                        prop:value=path_input
+                        on:input=move |ev| set_path_input.set(event_target_value(&ev))
+                        on:keydown=move |ev: web_sys::KeyboardEvent| {
+                            if ev.key() == "Enter" {
+                                do_load_unpacked();
+                            }
+                        }
+                        style="flex:1;"
+                    />
+                    <button class="btn-action" on:click=move |_| do_load_unpacked()>"Load Unpacked"</button>
                 </div>
 
                 <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
