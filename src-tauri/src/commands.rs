@@ -7,12 +7,12 @@ use shared::{
     AppConfig, BookmarkRecord, DecryptedVaultRecord, DnsTestResult, DownloadRecord, ExtensionItem,
     HistoryRecord, PageContentResponse, ShieldLevel, ShieldStats, ShieldVerdict,
 };
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
 use tauri::{
-    webview::{WebviewBuilder, WebviewUrl},
-    AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalSize, State,
+    webview::WebviewBuilder,
+    AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalSize, State, WebviewUrl,
 };
 
 pub const NAV_BAR_HEIGHT: f64 = 104.0;
