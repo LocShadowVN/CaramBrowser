@@ -21,7 +21,7 @@ pub async fn check_shield(
 }
 
 #[tauri::command]
-pub fn set_shield_level(shield: State<ShieldEngine>, level: String) -> Result<(), String> {
+pub fn set_shield_level(shield: State<'_, ShieldEngine>, level: String) -> Result<(), String> {
     let mode = match level.as_str() {
         "Off" => ShieldLevel::Off,
         "Aggressive" => ShieldLevel::Aggressive,
@@ -98,7 +98,6 @@ pub async fn fetch_web_page(
 
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Caram/1.0.0")
-        .redirect(reqwest::redirect::Policy::limited(10))
         .timeout(std::time::Duration::from_secs(20))
         .build()
         .map_err(|e| e.to_string())?;
@@ -117,13 +116,13 @@ pub async fn fetch_web_page(
         .unwrap_or("")
         .to_lowercase();
 
-    // Stream & save binary downloads
     if !content_type.contains("text/html") && !content_type.contains("text/plain") && !content_type.contains("application/xhtml") {
         let config = db.load_config();
         let download_dir = PathBuf::from(&config.download_path);
+        let _ = tokio::fs::create_dir_all(&download_dir).await;
+
         let filename = resp.url().path_segments()
-            .and_then(|mut s| s.next_back())
-            .filter(|s| !s.is_empty())
+            .and_then(|s| s.filter(|segment| !segment.is_empty()).last())
             .unwrap_or("download.bin")
             .to_string();
 
@@ -205,7 +204,6 @@ fn process_html(html: &str, base_url: &str, cosmetic_css: &str) -> String {
     let bridge_script = r#"
     <script id="caram-bridge-core">
     (function() {
-        // 1. WebBridge Polyfill
         window.chrome = {
             runtime: { id: "caram-runtime", getManifest: () => ({ name: "Caram Browser" }) },
             app: { isInstalled: false },
@@ -213,7 +211,6 @@ fn process_html(html: &str, base_url: &str, cosmetic_css: &str) -> String {
             loadTimes: function() { return { requestTime: performance.now() }; }
         };
 
-        // 2. Report document title & state to top container
         function reportState() {
             try {
                 window.parent.postMessage({
@@ -234,7 +231,6 @@ fn process_html(html: &str, base_url: &str, cosmetic_css: &str) -> String {
             { subtree: true, characterData: true, childList: true }
         );
 
-        // 3. Link Navigation Interception
         document.addEventListener('click', function(e) {
             let target = e.target;
             while (target && target.tagName !== 'A') {
@@ -249,7 +245,6 @@ fn process_html(html: &str, base_url: &str, cosmetic_css: &str) -> String {
             }
         }, true);
 
-        // 4. Runtime In-Page Shield Interception
         const BLOCKED_PATTERNS = [
             'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
             'adnxs.com', 'facebook.com/tr', 'adroll.com', 'taboola.com',
@@ -316,47 +311,47 @@ fn process_html(html: &str, base_url: &str, cosmetic_css: &str) -> String {
 }
 
 #[tauri::command]
-pub fn record_history(db: State<DbManager>, url: String, title: String) -> Result<(), String> {
+pub fn record_history(db: State<'_, DbManager>, url: String, title: String) -> Result<(), String> {
     db.insert_history(&url, &title).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn fetch_history(db: State<DbManager>) -> Result<Vec<HistoryRecord>, String> {
+pub fn fetch_history(db: State<'_, DbManager>) -> Result<Vec<HistoryRecord>, String> {
     db.fetch_history().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn clear_history(db: State<DbManager>) -> Result<(), String> {
+pub fn clear_history(db: State<'_, DbManager>) -> Result<(), String> {
     db.wipe_history().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn save_bookmark(db: State<DbManager>, url: String, title: String) -> Result<(), String> {
+pub fn save_bookmark(db: State<'_, DbManager>, url: String, title: String) -> Result<(), String> {
     db.insert_bookmark(&url, &title).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn fetch_bookmarks(db: State<DbManager>) -> Result<Vec<BookmarkRecord>, String> {
+pub fn fetch_bookmarks(db: State<'_, DbManager>) -> Result<Vec<BookmarkRecord>, String> {
     db.fetch_bookmarks().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn remove_bookmark(db: State<DbManager>, id: i64) -> Result<(), String> {
+pub fn remove_bookmark(db: State<'_, DbManager>, id: i64) -> Result<(), String> {
     db.delete_bookmark(id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn fetch_downloads(db: State<DbManager>) -> Result<Vec<DownloadRecord>, String> {
+pub fn fetch_downloads(db: State<'_, DbManager>) -> Result<Vec<DownloadRecord>, String> {
     db.fetch_downloads().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn clear_downloads(db: State<DbManager>) -> Result<(), String> {
+pub fn clear_downloads(db: State<'_, DbManager>) -> Result<(), String> {
     db.wipe_downloads().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn remove_download(db: State<DbManager>, id: i64) -> Result<(), String> {
+pub fn remove_download(db: State<'_, DbManager>, id: i64) -> Result<(), String> {
     db.delete_download(id).map_err(|e| e.to_string())
 }
 
@@ -377,24 +372,24 @@ pub fn open_file_manager(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn fetch_extensions(db: State<DbManager>) -> Result<Vec<ExtensionItem>, String> {
+pub fn fetch_extensions(db: State<'_, DbManager>) -> Result<Vec<ExtensionItem>, String> {
     db.fetch_extensions().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn load_unpacked_extension(db: State<DbManager>, folder_path: String) -> Result<ExtensionItem, String> {
+pub fn load_unpacked_extension(db: State<'_, DbManager>, folder_path: String) -> Result<ExtensionItem, String> {
     let item = ExtensionEngine::parse_manifest(&folder_path)?;
     db.save_extension(&item).map_err(|e| e.to_string())?;
     Ok(item)
 }
 
 #[tauri::command]
-pub fn toggle_extension(db: State<DbManager>, id: String, enabled: bool) -> Result<(), String> {
+pub fn toggle_extension(db: State<'_, DbManager>, id: String, enabled: bool) -> Result<(), String> {
     db.set_extension_state(&id, enabled).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn remove_extension(db: State<DbManager>, id: String) -> Result<(), String> {
+pub fn remove_extension(db: State<'_, DbManager>, id: String) -> Result<(), String> {
     db.remove_extension(&id).map_err(|e| e.to_string())
 }
 
@@ -404,12 +399,12 @@ pub async fn test_doh(url: String) -> DnsTestResult {
 }
 
 #[tauri::command]
-pub fn vault_is_configured(db: State<DbManager>) -> bool {
+pub fn vault_is_configured(db: State<'_, DbManager>) -> bool {
     db.get_master_hash().is_some()
 }
 
 #[tauri::command]
-pub fn vault_setup(db: State<DbManager>, master_pass: String) -> Result<(), String> {
+pub fn vault_setup(db: State<'_, DbManager>, master_pass: String) -> Result<(), String> {
     if master_pass.len() < 8 {
         return Err("Password must be at least 8 characters".into());
     }
@@ -420,7 +415,7 @@ pub fn vault_setup(db: State<DbManager>, master_pass: String) -> Result<(), Stri
 
 #[tauri::command]
 pub fn vault_save_credential(
-    db: State<DbManager>,
+    db: State<'_, DbManager>,
     master_pass: String,
     website: String,
     username: String,
@@ -438,7 +433,7 @@ pub fn vault_save_credential(
 
 #[tauri::command]
 pub fn vault_read_all(
-    db: State<DbManager>,
+    db: State<'_, DbManager>,
     master_pass: String,
 ) -> Result<Vec<DecryptedVaultRecord>, String> {
     let hash = db.get_master_hash().ok_or("Vault not initialized")?;
@@ -464,7 +459,7 @@ pub fn vault_read_all(
 }
 
 #[tauri::command]
-pub fn vault_delete(db: State<DbManager>, id: i64) -> Result<(), String> {
+pub fn vault_delete(db: State<'_, DbManager>, id: i64) -> Result<(), String> {
     db.delete_vault_row(id).map_err(|e| e.to_string())
 }
 
@@ -474,17 +469,17 @@ pub fn generate_password(length: usize) -> String {
 }
 
 #[tauri::command]
-pub fn get_settings(db: State<DbManager>) -> AppConfig {
+pub fn get_settings(db: State<'_, DbManager>) -> AppConfig {
     db.load_config()
 }
 
 #[tauri::command]
-pub fn update_setting(db: State<DbManager>, key: String, value: String) -> Result<(), String> {
+pub fn update_setting(db: State<'_, DbManager>, key: String, value: String) -> Result<(), String> {
     db.save_config_item(&key, &value).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn get_shield_stats(db: State<DbManager>, shield: State<ShieldEngine>) -> ShieldStats {
+pub fn get_shield_stats(db: State<'_, DbManager>, shield: State<'_, ShieldEngine>) -> ShieldStats {
     let total = db.get_total_blocked() + shield.get_blocked_count();
     ShieldStats {
         total_blocked: total,
@@ -495,7 +490,7 @@ pub fn get_shield_stats(db: State<DbManager>, shield: State<ShieldEngine>) -> Sh
 }
 
 #[tauri::command]
-pub fn increment_blocked_stat(db: State<DbManager>, shield: State<ShieldEngine>, count: u64) {
+pub fn increment_blocked_stat(db: State<'_, DbManager>, shield: State<'_, ShieldEngine>, count: u64) {
     shield.increment_blocked(count);
     db.increment_blocked_stat(count);
 }
