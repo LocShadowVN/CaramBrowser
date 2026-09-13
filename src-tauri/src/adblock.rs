@@ -22,111 +22,76 @@ pub struct ShieldEngine {
     blocked_count: AtomicU64,
 }
 
+fn resolve_bundled_rules_path() -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+
+    // 1. Ưu tiên file người dùng tự override tại ~/.local/share/caram-browser/
+    if let Some(mut data_dir) = dirs::data_local_dir() {
+        data_dir.push("caram-browser");
+        data_dir.push("custom_rules.txt");
+        candidates.push(data_dir);
+    }
+
+    // 2. Kiểm tra AppImage runtime ($APPDIR)
+    if let Ok(appdir) = std::env::var("APPDIR") {
+        candidates.push(PathBuf::from(&appdir).join("usr/lib/caram-browser/resources/rules.txt"));
+        candidates.push(PathBuf::from(&appdir).join("usr/lib/caram_browser/resources/rules.txt"));
+        candidates.push(PathBuf::from(&appdir).join("usr/bin/resources/rules.txt"));
+        candidates.push(PathBuf::from(&appdir).join("resources/rules.txt"));
+    }
+
+    // 3. Kiểm tra theo đường dẫn cài đặt hệ thống của file .deb (/usr/lib/...)
+    candidates.push(PathBuf::from("/usr/lib/caram-browser/resources/rules.txt"));
+    candidates.push(PathBuf::from("/usr/lib/caram_browser/resources/rules.txt"));
+    candidates.push(PathBuf::from("/usr/share/caram-browser/resources/rules.txt"));
+
+    // 4. Kiểm tra tương đối với thư mục chứa binary thực thi
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            candidates.push(parent.join("resources/rules.txt"));
+            candidates.push(parent.join("../lib/caram-browser/resources/rules.txt"));
+            candidates.push(parent.join("../lib/caram_browser/resources/rules.txt"));
+        }
+    }
+
+    // 5. Kiểm tra môi trường chạy local dev
+    candidates.push(PathBuf::from("resources/rules.txt"));
+    candidates.push(PathBuf::from("src-tauri/resources/rules.txt"));
+
+    candidates.into_iter().find(|p| p.exists())
+}
+
 impl ShieldEngine {
     pub fn new() -> Self {
         let (tx, rx) = channel::<ShieldJob>();
 
         thread::spawn(move || {
             let mut rules: Vec<String> = vec![
-                // --- Core Ad Networks & Exchanges ---
+                // Embedded baseline fallback rules
                 "||doubleclick.net^$third-party".into(),
                 "||googleadservices.com^".into(),
                 "||pagead2.googlesyndication.com^".into(),
-                "||adservice.google.com^".into(),
+                "||google-analytics.com^".into(),
+                "||analytics.google.com^".into(),
+                "||googletagmanager.com/gtm.js*".into(),
                 "||adnxs.com^".into(),
                 "||adroll.com^".into(),
                 "||taboola.com^".into(),
                 "||outbrain.com^".into(),
                 "||criteo.com^".into(),
-                "||criteo.net^".into(),
-                "||moatads.com^".into(),
-                "||advertising.com^".into(),
-                "||quantserve.com^".into(),
-                "||popads.net^".into(),
-                "||popcash.net^".into(),
-                "||amazon-adsystem.com^".into(),
-                "||rubiconproject.com^".into(),
-                "||pubmatic.com^".into(),
-                "||openx.net^".into(),
-                "||smartadserver.com^".into(),
-                "||bidswitch.net^".into(),
-                "||yieldmo.com^".into(),
-                "||revcontent.com^".into(),
-                "||media.net^".into(),
-                "||mgid.com^".into(),
-                "||infolinks.com^".into(),
-                "||chitika.net^".into(),
-                "||zedo.com^".into(),
-                "||propellerads.com^".into(),
-                "||exoclick.com^".into(),
-                "||juicyads.com^".into(),
-                "||trafficjunky.com^".into(),
-                "||adsterra.com^".into(),
-                "||clickadu.com^".into(),
-                "/ads/*".into(),
-                "/adbanner/*".into(),
-                "/ad-service/*".into(),
-
-                // --- Trackers, Telemetry & Analytics ---
-                "||google-analytics.com^".into(),
-                "||analytics.google.com^".into(),
-                "||googletagmanager.com/gtm.js*".into(),
-                "||googletagservices.com^".into(),
                 "||facebook.com/tr/*".into(),
-                "||connect.facebook.net/*/fbevents.js".into(),
-                "||scorecardresearch.com^".into(),
                 "||hotjar.com^".into(),
-                "||mouseflow.com^".into(),
-                "||fullstory.com^".into(),
-                "||segment.io^".into(),
-                "||segment.com^".into(),
-                "||mixpanel.com^".into(),
-                "||newrelic.com^".into(),
-                "||yandex.ru/metrika/*".into(),
-                "||mc.yandex.ru/*".into(),
-                "||clarity.ms^".into(),
-                "||bat.bing.com^".into(),
-                "||tiktok.com/api/v1/pixel/*".into(),
-                "||analytics.tiktok.com^".into(),
-                "||byteoversea.com^".into(),
-                "||ads.twitter.com^".into(),
-                "||ads-twitter.com^".into(),
-                "||static.ads-twitter.com^".into(),
-                "/telemetry/*".into(),
-                "/beacon/*".into(),
-                "*-analytics.*".into(),
-                "*-tracker.*".into(),
-                "*-telemetry.*".into(),
-
-                // --- Cookie Consent, GDPR & Annoyance Networks ---
                 "||onetrust.com^".into(),
                 "||cookielaw.org^".into(),
                 "||cookiebot.com^".into(),
-                "||trustarc.com^".into(),
-                "||usercentrics.eu^".into(),
-                "||didomi.io^".into(),
-                "||iubenda.com^".into(),
-                "||quantcast.mgr.consensu.org^".into(),
-                "||complianz.io^".into(),
-                "||fundingchoicesmessages.google.com^".into(),
-                "||consentmanager.net^".into(),
-                "||cookieinformation.com^".into(),
-                "||axeptio.eu^".into(),
-                "||sirdata.io^".into(),
-                "||osano.com^".into(),
-                "||ketch.com^".into(),
-                "||cookie-script.com^".into(),
-                "||cookieyes.com^".into(),
-                "||uniconsent.com^".into(),
-                "||termsfeed.com^".into(),
+                "/ads/*".into(),
+                "/adbanner/*".into(),
+                "/telemetry/*".into(),
             ];
 
-            // Tự động load thêm rules ngoại vi nếu user bỏ file vào ~/.local/share/caram-browser/custom_rules.txt
-            let mut custom_path = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-            custom_path.push("caram-browser");
-            custom_path.push("custom_rules.txt");
-            if custom_path.exists() {
-                if let Ok(content) = std::fs::read_to_string(&custom_path) {
+            // Tự động nạp file 300.000 rules được đóng gói đi kèm ứng dụng
+            if let Some(rules_path) = resolve_bundled_rules_path() {
+                if let Ok(content) = std::fs::read_to_string(&rules_path) {
                     for line in content.lines() {
                         let trimmed = line.trim();
                         if !trimmed.is_empty() && !trimmed.starts_with('!') && !trimmed.starts_with('#') {
@@ -184,14 +149,11 @@ impl ShieldEngine {
 
     pub fn get_cosmetic_css(&self) -> &'static str {
         r#"
-            /* Triệt tiêu phần tử quảng cáo và video ads */
             .ad-banner, .adsbygoogle, [id^='google_ads_'], [id^='div-gpt-ad'],
             .ad-container, .ad-wrapper, .ad-slot, .ad_box, .advertisement,
             .sponsored-post, .taboola-ad, .outbrain-ad, [class*='sponsored'],
             [data-ad-client], [data-google-query-id], iframe[src*='doubleclick'],
             iframe[src*='adnxs'], .video-ads, .ytp-ad-module, .ytp-ad-overlay-container,
-            
-            /* Triệt tiêu banner Cookie, thông báo GDPR và hộp thoại xác nhận */
             #onetrust-consent-sdk, #onetrust-banner-sdk, .onetrust-pc-dark,
             #CybotCookiebotDialog, #CybotCookiebotDialogBody,
             .cc-window, .cc-banner, .cc-floating, .cc-dialog,
@@ -213,8 +175,6 @@ impl ShieldEngine {
                 max-height: 0 !important;
                 z-index: -99999 !important;
             }
-
-            /* Mở khóa cuộn trang nếu website ép body overflow: hidden để bắt bấm đồng ý */
             html, body {
                 overflow: auto !important;
                 position: static !important;
@@ -226,11 +186,7 @@ impl ShieldEngine {
         let css = self.get_cosmetic_css();
         format!(r#"
             (function() {{
-                // ============================================================
-                // 1. BRAVE FARBLING: CHỐNG LẤY DẤU VÂN TAY (ANTI-FINGERPRINTING)
-                // ============================================================
                 try {{
-                    // Canvas Farbling: Thêm nhiễu ngẫu nhiên vi mô vào dữ liệu Canvas
                     const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
                     HTMLCanvasElement.prototype.toDataURL = function() {{
                         const ctx = this.getContext('2d');
@@ -253,7 +209,6 @@ impl ShieldEngine {
                         return res;
                     }};
 
-                    // AudioContext Farbling: Chống fingerprinting qua âm thanh
                     if (window.AudioBuffer) {{
                         const origGetChannelData = AudioBuffer.prototype.getChannelData;
                         AudioBuffer.prototype.getChannelData = function() {{
@@ -265,16 +220,12 @@ impl ShieldEngine {
                         }};
                     }}
 
-                    // Chống phát hiện tự động hóa
                     Object.defineProperty(navigator, 'webdriver', {{ get: () => false }});
                     if (navigator.getBattery) {{
                         navigator.getBattery = () => Promise.reject();
                     }}
                 }} catch(e) {{}}
 
-                // ============================================================
-                // 2. SCRIPTLET DEFUSERS & MOCK TRACKERS (CHUẨN uBLOCK ORIGIN)
-                // ============================================================
                 window.chrome = {{
                     runtime: {{ id: "caram-runtime", getManifest: () => ({{ name: "Caram Browser" }}) }},
                     app: {{ isInstalled: false }},
@@ -288,9 +239,6 @@ impl ShieldEngine {
                 window.gtag = function() {{}};
                 window.fbq = function() {{}};
 
-                // ============================================================
-                // 3. AUTO-DEFUSE BANNER COOKIE / GDPR (TCF & CMP STUBS)
-                // ============================================================
                 const stubCmp = function(cmd, ver, cb) {{
                     if (typeof cb === 'function') {{
                         cb({{ eventStatus: 'tcloaded', gdprApplies: false, tcString: '' }}, true);
@@ -301,14 +249,10 @@ impl ShieldEngine {
                 window.OneTrust = {{ IsAlertBoxClosed: () => true, Close: () => {{}} }};
                 window.Cookiebot = {{ consented: true, declined: false, hide: () => {{}} }};
 
-                // Triệt tiêu Beacon API
                 if (navigator.sendBeacon) {{
                     navigator.sendBeacon = () => true;
                 }}
 
-                // ============================================================
-                // 4. SUBRESOURCE NETWORK HOOK (CHẶN REQUEST NGẦM TRONG TRANG)
-                // ============================================================
                 const BLOCKED_DOMAINS = [
                     'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
                     'googleadservices.com', 'adnxs.com', 'facebook.com/tr',
@@ -345,9 +289,6 @@ impl ShieldEngine {
                     return origOpen.apply(this, arguments);
                 }};
 
-                // ============================================================
-                // 5. INJECT COSMETIC STYLESHEET
-                // ============================================================
                 const injectCss = () => {{
                     if (document.getElementById('caram-shield-cosmetics')) return;
                     const style = document.createElement('style');
