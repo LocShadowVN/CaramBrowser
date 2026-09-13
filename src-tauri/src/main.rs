@@ -10,9 +10,9 @@ mod extensions;
 use adblock::ShieldEngine;
 use commands::ViewportManager;
 use database::DbManager;
-use tauri::webview::{WebviewBuilder, WebviewUrl};
+use tauri::webview::WebviewBuilder;
 use tauri::window::WindowBuilder;
-use tauri::{LogicalPosition, LogicalSize, PhysicalSize};
+use tauri::{LogicalPosition, LogicalSize, PhysicalSize, WebviewUrl};
 
 fn main() {
     env_logger::init();
