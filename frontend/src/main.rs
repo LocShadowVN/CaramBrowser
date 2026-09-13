@@ -112,7 +112,6 @@ fn App() -> impl IntoView {
         }
     });
 
-    // Mở rộng tầng Webview UI khi bung Menu để không bị che khuất
     create_effect(move |_| {
         let open = shield_open.get() || menu_open.get();
         spawn_local(async move {
@@ -200,7 +199,10 @@ fn App() -> impl IntoView {
                 return;
             }
 
-            let resolved: String = call_tauri("resolve_url", &ResolveArgs { raw: target.clone(), engine }).await.unwrap_or_else(|_| target);
+            let resolved: String = call_tauri("resolve_url", &ResolveArgs { raw: target.clone(), engine })
+                .await
+                .unwrap_or(target);
+
             tab.url = resolved.clone();
             tab.title = resolved.clone();
             tab.page_mode = PageMode::Web;
@@ -227,7 +229,6 @@ fn App() -> impl IntoView {
                         let id = tab.id.clone();
                         let id_del = tab.id.clone();
                         let active = tab.id == active_tab_id.get();
-                        let tab_url = tab.url.clone();
                         view! {
                             <div class=format!("tab-chip {}", if active { "active" } else { "" }) on:click=move |_| {
                                 let id_c = id.clone();
@@ -424,7 +425,7 @@ fn App() -> impl IntoView {
                             <span style="font-size:11px; color:var(--text-secondary)">"Trackers & Ads Intercepted"</span>
                         </div>
                         <div style="font-size:12px; color:var(--text-secondary); text-align:center;">
-                            "Brave-grade Bloom filter, GDPR Cookie killer & tokenized pattern trie."
+                            "Brave-grade Farbling, Bloom filter, GDPR Cookie killer & tokenized pattern trie."
                         </div>
                     </div>
                 }
