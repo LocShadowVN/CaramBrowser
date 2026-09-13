@@ -11,7 +11,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb", "appimage"]
+    "targets": ["deb", "appimage"],
+    "resources": [
+      "resources/*"
+    ]
   },
   "app": {
     "withGlobalTauri": true,
