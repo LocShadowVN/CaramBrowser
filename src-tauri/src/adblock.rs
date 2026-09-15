@@ -25,14 +25,12 @@ pub struct ShieldEngine {
 fn resolve_bundled_rules_path() -> Option<PathBuf> {
     let mut candidates = Vec::new();
 
-    // 1. Ưu tiên file người dùng tự override tại ~/.local/share/caram-browser/
     if let Some(mut data_dir) = dirs::data_local_dir() {
         data_dir.push("caram-browser");
         data_dir.push("custom_rules.txt");
         candidates.push(data_dir);
     }
 
-    // 2. Kiểm tra AppImage runtime ($APPDIR)
     if let Ok(appdir) = std::env::var("APPDIR") {
         candidates.push(PathBuf::from(&appdir).join("usr/lib/caram-browser/resources/rules.txt"));
         candidates.push(PathBuf::from(&appdir).join("usr/lib/caram_browser/resources/rules.txt"));
@@ -40,12 +38,10 @@ fn resolve_bundled_rules_path() -> Option<PathBuf> {
         candidates.push(PathBuf::from(&appdir).join("resources/rules.txt"));
     }
 
-    // 3. Kiểm tra theo đường dẫn cài đặt hệ thống của file .deb (/usr/lib/...)
     candidates.push(PathBuf::from("/usr/lib/caram-browser/resources/rules.txt"));
     candidates.push(PathBuf::from("/usr/lib/caram_browser/resources/rules.txt"));
     candidates.push(PathBuf::from("/usr/share/caram-browser/resources/rules.txt"));
 
-    // 4. Kiểm tra tương đối với thư mục chứa binary thực thi
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(parent) = exe_path.parent() {
             candidates.push(parent.join("resources/rules.txt"));
@@ -54,7 +50,6 @@ fn resolve_bundled_rules_path() -> Option<PathBuf> {
         }
     }
 
-    // 5. Kiểm tra môi trường chạy local dev
     candidates.push(PathBuf::from("resources/rules.txt"));
     candidates.push(PathBuf::from("src-tauri/resources/rules.txt"));
 
@@ -67,7 +62,6 @@ impl ShieldEngine {
 
         thread::spawn(move || {
             let mut rules: Vec<String> = vec![
-                // Embedded baseline fallback rules
                 "||doubleclick.net^$third-party".into(),
                 "||googleadservices.com^".into(),
                 "||pagead2.googlesyndication.com^".into(),
@@ -89,7 +83,6 @@ impl ShieldEngine {
                 "/telemetry/*".into(),
             ];
 
-            // Tự động nạp file 300.000 rules được đóng gói đi kèm ứng dụng
             if let Some(rules_path) = resolve_bundled_rules_path() {
                 if let Ok(content) = std::fs::read_to_string(&rules_path) {
                     for line in content.lines() {
@@ -186,6 +179,72 @@ impl ShieldEngine {
         let css = self.get_cosmetic_css();
         format!(r#"
             (function() {{
+                // ============================================================
+                // 1. CHẶN TẦNG SÂU: PROPERTY DESCRIPTOR & DOM PROTOTYPE HOOK
+                // ============================================================
+                const BLOCKED_PATTERNS = [
+                    'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
+                    'googleadservices.com', 'adnxs.com', 'facebook.com/tr',
+                    'adroll.com', 'taboola.com', 'outbrain.com', 'criteo.com',
+                    'scorecardresearch.com', 'hotjar.com', 'moatads.com',
+                    'advertising.com', 'popads.net', 'amazon-adsystem.com',
+                    'rubiconproject.com', 'openx.net', 'smartadserver.com',
+                    'onetrust.com', 'cookielaw.org', 'cookiebot.com', 'clarity.ms',
+                    'tiktok.com/api/v1/pixel', 'bat.bing.com'
+                ];
+
+                function isTrackingUrl(url) {{
+                    if (!url || typeof url !== 'string') return false;
+                    for (let i = 0; i < BLOCKED_PATTERNS.length; i++) {{
+                        if (url.indexOf(BLOCKED_PATTERNS[i]) !== -1) return true;
+                    }}
+                    return false;
+                }}
+
+                // Chặn gán src vào thẻ SCRIPT từ tầng sâu
+                const origScriptSrcDesc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
+                if (origScriptSrcDesc) {{
+                    Object.defineProperty(HTMLScriptElement.prototype, 'src', {{
+                        set: function(val) {{
+                            if (isTrackingUrl(val)) {{
+                                return origScriptSrcDesc.set.call(this, 'data:text/javascript,/*blocked-by-caram-shield*/');
+                            }}
+                            return origScriptSrcDesc.set.call(this, val);
+                        }},
+                        get: function() {{
+                            return origScriptSrcDesc.get.call(this);
+                        }}
+                    }});
+                }}
+
+                // Chặn gán src vào thẻ IFRAME quảng cáo
+                const origIframeSrcDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
+                if (origIframeSrcDesc) {{
+                    Object.defineProperty(HTMLIFrameElement.prototype, 'src', {{
+                        set: function(val) {{
+                            if (isTrackingUrl(val)) {{
+                                return origIframeSrcDesc.set.call(this, 'about:blank');
+                            }}
+                            return origIframeSrcDesc.set.call(this, val);
+                        }},
+                        get: function() {{
+                            return origIframeSrcDesc.get.call(this);
+                        }}
+                    }});
+                }}
+
+                // Chặn WebSocket Telemetry
+                const OrigWS = window.WebSocket;
+                window.WebSocket = function(url, protocols) {{
+                    if (isTrackingUrl(url)) {{
+                        throw new Error('Blocked by Caram Shield Deep Network Guard');
+                    }}
+                    return new OrigWS(url, protocols);
+                }};
+
+                // ============================================================
+                // 2. BRAVE FARBLING: CHỐNG LẤY VÂN TAY (CANVAS / AUDIO)
+                // ============================================================
                 try {{
                     const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
                     HTMLCanvasElement.prototype.toDataURL = function() {{
@@ -226,6 +285,9 @@ impl ShieldEngine {
                     }}
                 }} catch(e) {{}}
 
+                // ============================================================
+                // 3. DIỆT BANNER COOKIE & SCRIPTLET DEFUSERS
+                // ============================================================
                 window.chrome = {{
                     runtime: {{ id: "caram-runtime", getManifest: () => ({{ name: "Caram Browser" }}) }},
                     app: {{ isInstalled: false }},
@@ -253,29 +315,11 @@ impl ShieldEngine {
                     navigator.sendBeacon = () => true;
                 }}
 
-                const BLOCKED_DOMAINS = [
-                    'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
-                    'googleadservices.com', 'adnxs.com', 'facebook.com/tr',
-                    'adroll.com', 'taboola.com', 'outbrain.com', 'criteo.com',
-                    'scorecardresearch.com', 'hotjar.com', 'moatads.com',
-                    'advertising.com', 'popads.net', 'amazon-adsystem.com',
-                    'rubiconproject.com', 'openx.net', 'smartadserver.com',
-                    'onetrust.com', 'cookielaw.org', 'cookiebot.com', 'clarity.ms'
-                ];
-
-                function isTrackingUrl(url) {{
-                    if (!url) return false;
-                    for (let i = 0; i < BLOCKED_DOMAINS.length; i++) {{
-                        if (url.indexOf(BLOCKED_DOMAINS[i]) !== -1) return true;
-                    }}
-                    return false;
-                }}
-
                 const origFetch = window.fetch;
                 window.fetch = function(input, init) {{
                     const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
                     if (isTrackingUrl(url)) {{
-                        return Promise.resolve(new Response('', {{ status: 204, statusText: 'Blocked by Caram Shield' }}));
+                        return Promise.resolve(new Response('', {{ status: 204, statusText: 'Blocked' }}));
                     }}
                     return origFetch.apply(this, arguments);
                 }};
@@ -289,6 +333,31 @@ impl ShieldEngine {
                     return origOpen.apply(this, arguments);
                 }};
 
+                // ============================================================
+                // 4. AUTOFILL DOM ENGINE (TỰ ĐỘNG ĐIỀN FORM BẢO MẬT)
+                // ============================================================
+                window.__CARAM_AUTOFILL = function(user, pass) {{
+                    const passInput = document.querySelector('input[type="password"]');
+                    if (passInput) {{
+                        passInput.value = pass;
+                        passInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        passInput.dispatchEvent(new Event('change', {{ bubbles: true }}));
+
+                        let form = passInput.form || passInput.closest('form') || document.body;
+                        let userInput = form.querySelector('input[type="text"], input[type="email"], input[name*="user"], input[name*="login"], input[name*="email"]');
+                        if (userInput) {{
+                            userInput.value = user;
+                            userInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                            userInput.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        }}
+                        return true;
+                    }}
+                    return false;
+                }};
+
+                // ============================================================
+                // 5. INJECT COSMETIC STYLESHEET
+                // ============================================================
                 const injectCss = () => {{
                     if (document.getElementById('caram-shield-cosmetics')) return;
                     const style = document.createElement('style');
