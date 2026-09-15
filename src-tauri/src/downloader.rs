@@ -1,28 +1,18 @@
 use crate::database::DbManager;
 use shared::DownloadProgressPayload;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::fs::{File, OpenOptions};
-use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt, SeekFrom};
-
-pub struct DownloadTask {
-    pub id: String,
-    pub url: String,
-    pub filename: String,
-    pub destination: PathBuf,
-    pub connections: usize,
-    pub is_cancelled: Arc<AtomicBool>,
-}
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub struct DownloadEngine;
 
 impl DownloadEngine {
     pub async fn start_download(
         app: AppHandle,
-        db: Arc<DbManager>,
         url: String,
         save_dir: PathBuf,
         custom_name: Option<String>,
@@ -75,10 +65,6 @@ impl DownloadEngine {
         let cancel_clone = cancel_flag.clone();
 
         tokio::spawn(async move {
-            let start_time = Instant::now();
-            let mut last_bytes = 0u64;
-            let mut last_tick = Instant::now();
-
             let target_path_bg = target_path_clone.clone();
 
             let result = if active_connections > 1 {
@@ -103,6 +89,7 @@ impl DownloadEngine {
 
             match result {
                 Ok(_) => {
+                    let db = app_clone.state::<DbManager>();
                     let size_str = format!("{:.2} MB", total_size as f64 / (1024.0 * 1024.0));
                     let _ = db.insert_download(
                         &final_filename_clone,
@@ -137,7 +124,6 @@ impl DownloadEngine {
             }
         });
 
-        // Tiến trình theo dõi tốc độ và phát tín hiệu IPC về UI
         let app_ticker = app.clone();
         let task_id_ticker = task_id.clone();
         let filename_ticker = final_filename.clone();
@@ -248,7 +234,6 @@ impl DownloadEngine {
             h.await.map_err(|e| e.to_string())??;
         }
 
-        // Ghép các phần tải thành file đích hoàn chỉnh
         let mut final_file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -259,7 +244,7 @@ impl DownloadEngine {
 
         for p in &part_files {
             let mut part_f = File::open(p).await.map_err(|e| e.to_string())?;
-            let mut buf = vec![0u8; 1024 * 1024]; // 1MB buffer
+            let mut buf = vec![0u8; 1024 * 1024];
             loop {
                 let n = part_f.read(&mut buf).await.map_err(|e| e.to_string())?;
                 if n == 0 { break; }
