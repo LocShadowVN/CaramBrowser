@@ -309,4 +309,269 @@ pub async fn check_shield(
 pub fn set_shield_level(shield: State<'_, ShieldEngine>, level: String) -> Result<(), String> {
     let mode = match level.as_str() {
         "Off" => ShieldLevel::Off,
-        "Aggressive" => S
+        "Aggressive" => ShieldLevel::Aggressive,
+        _ => ShieldLevel::Standard,
+    };
+    shield.set_level(mode);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn resolve_url(raw: String, engine: String) -> String {
+    let input = raw.trim();
+    if input.is_empty() {
+        return "caram://newtab".to_string();
+    }
+    if input.starts_with("caram://") || input.starts_with("about:") {
+        return input.to_string();
+    }
+    if input.starts_with("http://") || input.starts_with("https://") {
+        return strip_tracking_parameters(input);
+    }
+    if input.starts_with("localhost") || input.starts_with("127.0.0.1") {
+        return format!("http://{}", input);
+    }
+    if input.contains('.') && !input.contains(' ') {
+        return strip_tracking_parameters(&format!("https://{}", input));
+    }
+    let encoded = url::form_urlencoded::byte_serialize(input.as_bytes()).collect::<String>();
+    if engine.contains("%s") {
+        engine.replace("%s", &encoded)
+    } else {
+        format!("{}{}", engine, encoded)
+    }
+}
+
+#[tauri::command]
+pub async fn fetch_web_page(
+    shield: State<'_, ShieldEngine>,
+    db: State<'_, DbManager>,
+    url: String,
+) -> Result<PageContentResponse, String> {
+    let verdict = shield.inspect_url(&url, &url).await;
+    if verdict.blocked {
+        return Ok(PageContentResponse {
+            final_url: url,
+            title: "Blocked by Caram Shield".into(),
+            html: "<h1>Blocked</h1>".into(),
+            blocked_count: 1,
+            status: 403,
+        });
+    }
+
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Caram/1.0.0")
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let final_url = resp.url().to_string();
+    let status = resp.status().as_u16();
+    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let _ = db.insert_history(&final_url, &final_url);
+
+    Ok(PageContentResponse {
+        final_url,
+        title: "Web Resource".into(),
+        html: text,
+        blocked_count: 0,
+        status,
+    })
+}
+
+#[tauri::command]
+pub fn record_history(db: State<'_, DbManager>, url: String, title: String) -> Result<(), String> {
+    db.insert_history(&url, &title).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn fetch_history(db: State<'_, DbManager>) -> Result<Vec<HistoryRecord>, String> {
+    db.fetch_history().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn clear_history(db: State<'_, DbManager>) -> Result<(), String> {
+    db.wipe_history().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_bookmark(db: State<'_, DbManager>, url: String, title: String) -> Result<(), String> {
+    db.insert_bookmark(&url, &title).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn fetch_bookmarks(db: State<'_, DbManager>) -> Result<Vec<BookmarkRecord>, String> {
+    db.fetch_bookmarks().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn remove_bookmark(db: State<'_, DbManager>, id: i64) -> Result<(), String> {
+    db.delete_bookmark(id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn fetch_downloads(db: State<'_, DbManager>) -> Result<Vec<DownloadRecord>, String> {
+    db.fetch_downloads().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn clear_downloads(db: State<'_, DbManager>) -> Result<(), String> {
+    db.wipe_downloads().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn remove_download(db: State<'_, DbManager>, id: i64) -> Result<(), String> {
+    db.delete_download(id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn open_file_manager(path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    let target = if p.is_file() {
+        p.parent().unwrap_or(p)
+    } else {
+        p
+    };
+
+    Command::new("xdg-open")
+        .arg(target)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn fetch_extensions(db: State<'_, DbManager>) -> Result<Vec<ExtensionItem>, String> {
+    db.fetch_extensions().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn load_unpacked_extension(db: State<'_, DbManager>, folder_path: String) -> Result<ExtensionItem, String> {
+    let item = ExtensionEngine::parse_manifest(&folder_path)?;
+    db.save_extension(&item).map_err(|e| e.to_string())?;
+    Ok(item)
+}
+
+#[tauri::command]
+pub fn toggle_extension(db: State<'_, DbManager>, id: String, enabled: bool) -> Result<(), String> {
+    db.set_extension_state(&id, enabled).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn remove_extension(db: State<'_, DbManager>, id: String) -> Result<(), String> {
+    db.remove_extension(&id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn test_doh(url: String) -> DnsTestResult {
+    DnsResolver::ping_test(&url).await
+}
+
+#[tauri::command]
+pub fn vault_is_configured(db: State<'_, DbManager>) -> bool {
+    db.get_master_hash().is_some()
+}
+
+#[tauri::command]
+pub fn vault_setup(db: State<'_, DbManager>, master_pass: String) -> Result<(), String> {
+    if master_pass.len() < 8 {
+        return Err("Password must be at least 8 characters".into());
+    }
+    let hash = CryptoEngine::hash_master_password(&master_pass)?;
+    db.set_master_hash(&hash).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn vault_save_credential(
+    db: State<'_, DbManager>,
+    master_pass: String,
+    website: String,
+    username: String,
+    secret: String,
+) -> Result<(), String> {
+    let hash = db.get_master_hash().ok_or("Vault not initialized")?;
+    if !CryptoEngine::verify_master_password(&master_pass, &hash) {
+        return Err("Authentication failed: Wrong password".into());
+    }
+    let (cipher, nonce, salt) = CryptoEngine::encrypt_secret(&master_pass, &secret)?;
+    db.insert_vault_row(&website, &username, &cipher, &nonce, &salt)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn vault_read_all(
+    db: State<'_, DbManager>,
+    master_pass: String,
+) -> Result<Vec<DecryptedVaultRecord>, String> {
+    let hash = db.get_master_hash().ok_or("Vault not initialized")?;
+    if !CryptoEngine::verify_master_password(&master_pass, &hash) {
+        return Err("Authentication failed: Wrong password".into());
+    }
+
+    let rows = db.list_vault_rows().map_err(|e| e.to_string())?;
+    let mut list = Vec::new();
+
+    for r in rows {
+        if let Ok(secret) = CryptoEngine::decrypt_secret(&master_pass, &r.ciphertext, &r.nonce, &r.salt) {
+            list.push(DecryptedVaultRecord {
+                id: r.id,
+                website: r.website,
+                username: r.username,
+                secret,
+                created_at: r.created_at,
+            });
+        }
+    }
+    Ok(list)
+}
+
+#[tauri::command]
+pub fn vault_delete(db: State<'_, DbManager>, id: i64) -> Result<(), String> {
+    db.delete_vault_row(id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn generate_password(length: usize) -> String {
+    CryptoEngine::generate_strong_password(length)
+}
+
+#[tauri::command]
+pub fn get_settings(db: State<'_, DbManager>) -> AppConfig {
+    db.load_config()
+}
+
+#[tauri::command]
+pub fn update_setting(db: State<'_, DbManager>, key: String, value: String) -> Result<(), String> {
+    db.save_config_item(&key, &value).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_shield_stats(db: State<'_, DbManager>, shield: State<'_, ShieldEngine>) -> ShieldStats {
+    let total = db.get_total_blocked() + shield.get_blocked_count();
+    ShieldStats {
+        total_blocked: total,
+        trackers_blocked: total,
+        bandwidth_saved_mb: (total as f64 * 0.08).round(),
+        time_saved_secs: (total as f64 * 0.02).round(),
+    }
+}
+
+#[tauri::command]
+pub fn increment_blocked_stat(db: State<'_, DbManager>, shield: State<'_, ShieldEngine>, count: u64) {
+    shield.increment_blocked(count);
+    db.increment_blocked_stat(count);
+}
+
+#[tauri::command]
+pub fn toggle_devtools(app: AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        if w.is_devtools_open() {
+            w.close_devtools();
+        } else {
+            w.open_devtools();
+        }
+    }
+}
