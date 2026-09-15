@@ -5,6 +5,9 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     #[wasm_bindgen(js_namespace = ["__TAURI__", "core"], catch)]
     async fn invoke(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(js_namespace = ["__TAURI__", "event"], catch)]
+    pub async fn listen(event: &str, handler: &js_sys::Function) -> Result<JsValue, JsValue>;
 }
 
 pub async fn call_tauri<T: Serialize, R: DeserializeOwned>(cmd: &str, args: &T) -> Result<R, String> {
