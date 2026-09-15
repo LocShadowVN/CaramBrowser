@@ -177,11 +177,14 @@ impl ShieldEngine {
 
     pub fn get_injected_script(&self) -> String {
         let css = self.get_cosmetic_css();
+        let bridge_script = crate::bridge::get_webbridge_script();
+
         format!(r#"
             (function() {{
-                // ============================================================
-                // 1. CHẶN TẦNG SÂU: PROPERTY DESCRIPTOR & DOM PROTOTYPE HOOK
-                // ============================================================
+                // 1. CARAM WEBBRIDGE COMPATIBILITY LAYER
+                {}
+
+                // 2. CHẶN TẦNG SÂU: PROPERTY DESCRIPTOR & DOM HOOK
                 const BLOCKED_PATTERNS = [
                     'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
                     'googleadservices.com', 'adnxs.com', 'facebook.com/tr',
@@ -201,7 +204,6 @@ impl ShieldEngine {
                     return false;
                 }}
 
-                // Chặn gán src vào thẻ SCRIPT từ tầng sâu
                 const origScriptSrcDesc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
                 if (origScriptSrcDesc) {{
                     Object.defineProperty(HTMLScriptElement.prototype, 'src', {{
@@ -217,7 +219,6 @@ impl ShieldEngine {
                     }});
                 }}
 
-                // Chặn gán src vào thẻ IFRAME quảng cáo
                 const origIframeSrcDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
                 if (origIframeSrcDesc) {{
                     Object.defineProperty(HTMLIFrameElement.prototype, 'src', {{
@@ -233,18 +234,15 @@ impl ShieldEngine {
                     }});
                 }}
 
-                // Chặn WebSocket Telemetry
                 const OrigWS = window.WebSocket;
                 window.WebSocket = function(url, protocols) {{
-                    if (isTrackingUrl(url)) {{
+                    if (isTrackingUrl(url)) {
                         throw new Error('Blocked by Caram Shield Deep Network Guard');
-                    }}
+                    }
                     return new OrigWS(url, protocols);
                 }};
 
-                // ============================================================
-                // 2. BRAVE FARBLING: CHỐNG LẤY VÂN TAY (CANVAS / AUDIO)
-                // ============================================================
+                // 3. BRAVE FARBLING: ANTI-FINGERPRINTING
                 try {{
                     const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
                     HTMLCanvasElement.prototype.toDataURL = function() {{
@@ -285,15 +283,7 @@ impl ShieldEngine {
                     }}
                 }} catch(e) {{}}
 
-                // ============================================================
-                // 3. DIỆT BANNER COOKIE & SCRIPTLET DEFUSERS
-                // ============================================================
-                window.chrome = {{
-                    runtime: {{ id: "caram-runtime", getManifest: () => ({{ name: "Caram Browser" }}) }},
-                    app: {{ isInstalled: false }},
-                    csi: function() {{}},
-                    loadTimes: function() {{ return {{ requestTime: performance.now() }}; }}
-                }};
+                // 4. DIỆT BANNER COOKIE & SCRIPTLET DEFUSERS
                 window.canRunAds = true;
                 window.isAdBlockActive = false;
                 window.ga = function() {{}};
@@ -333,9 +323,7 @@ impl ShieldEngine {
                     return origOpen.apply(this, arguments);
                 }};
 
-                // ============================================================
-                // 4. AUTOFILL DOM ENGINE (TỰ ĐỘNG ĐIỀN FORM BẢO MẬT)
-                // ============================================================
+                // 5. AUTOFILL DOM ENGINE
                 window.__CARAM_AUTOFILL = function(user, pass) {{
                     const passInput = document.querySelector('input[type="password"]');
                     if (passInput) {{
@@ -355,9 +343,7 @@ impl ShieldEngine {
                     return false;
                 }};
 
-                // ============================================================
-                // 5. INJECT COSMETIC STYLESHEET
-                // ============================================================
+                // 6. INJECT COSMETIC STYLESHEET
                 const injectCss = () => {{
                     if (document.getElementById('caram-shield-cosmetics')) return;
                     const style = document.createElement('style');
@@ -371,7 +357,7 @@ impl ShieldEngine {
                     injectCss();
                 }}
             }})();
-        "#, css)
+        "#, bridge_script, css)
     }
 
     pub async fn inspect_url(&self, target_url: &str, host_url: &str) -> ShieldVerdict {
