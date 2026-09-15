@@ -5,7 +5,7 @@ mod views;
 use icons::*;
 use leptos::*;
 use serde::Serialize;
-use shared::{AppConfig, BookmarkRecord};
+use shared::{AppConfig, BookmarkRecord, DownloadProgressPayload, SiteCredential};
 use tauri_ipc::call_tauri;
 use views::{
     bookmarks::BookmarksView, downloads::DownloadsView, extensions::ExtensionsView,
@@ -59,6 +59,17 @@ struct GetSiteShieldArgs {
 struct ToggleSiteShieldArgs {
     domain: String,
     enabled: bool,
+}
+
+#[derive(Serialize)]
+struct CheckVaultDomainArgs {
+    domain: String,
+}
+
+#[derive(Serialize)]
+struct ExecuteAutofillArgs {
+    username: String,
+    secret: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -116,6 +127,10 @@ fn App() -> impl IntoView {
     let (menu_open, set_menu_open) = create_signal(false);
     let (bookmarks, set_bookmarks) = create_signal(Vec::<BookmarkRecord>::new());
     let (current_site_shield, set_current_site_shield) = create_signal(true);
+    let (available_credentials, set_available_credentials) = create_signal(Vec::<SiteCredential>::new());
+
+    // State cho Download Shelf (Tiến trình tải đa luồng)
+    let (active_download, set_active_download) = create_signal(Option::<DownloadProgressPayload>::None);
 
     let (config, set_config) = create_signal(AppConfig::default());
 
@@ -144,14 +159,21 @@ fn App() -> impl IntoView {
         });
     });
 
-    let sync_site_shield_status = move |target_url: &str| {
+    let sync_site_state = move |target_url: &str| {
         let domain = extract_domain(target_url);
         if !domain.starts_with("Caram") && !domain.is_empty() {
+            let d1 = domain.clone();
+            let d2 = domain.clone();
             spawn_local(async move {
-                if let Ok(enabled) = call_tauri::<_, bool>("get_site_shield", &GetSiteShieldArgs { domain }).await {
+                if let Ok(enabled) = call_tauri::<_, bool>("get_site_shield", &GetSiteShieldArgs { domain: d1 }).await {
                     set_current_site_shield.set(enabled);
                 }
+                if let Ok(creds) = call_tauri::<_, Vec<SiteCredential>>("check_vault_credentials_for_domain", &CheckVaultDomainArgs { domain: d2 }).await {
+                    set_available_credentials.set(creds);
+                }
             });
+        } else {
+            set_available_credentials.set(Vec::new());
         }
     };
 
@@ -249,7 +271,7 @@ fn App() -> impl IntoView {
             }
             set_tabs.set(list);
             set_omnibox_text.set(resolved.clone());
-            sync_site_shield_status(&resolved);
+            sync_site_state(&resolved);
 
             let _ = call_tauri::<_, ()>("open_native_tab", &OpenNativeTabArgs {
                 tab_id: cur_id,
@@ -274,7 +296,7 @@ fn App() -> impl IntoView {
                                 let is_int = list.iter().find(|t| t.id == id_c).map(|t| t.url.starts_with("caram://")).unwrap_or(true);
                                 let cur_url = list.iter().find(|t| t.id == id_c).map(|t| t.url.clone()).unwrap_or_default();
                                 set_omnibox_text.set(if cur_url == "caram://newtab" { String::new() } else { cur_url.clone() });
-                                sync_site_shield_status(&cur_url);
+                                sync_site_state(&cur_url);
                                 let all_ids: Vec<String> = list.iter().map(|t| t.id.clone()).collect();
                                 spawn_local(async move {
                                     let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
@@ -410,6 +432,35 @@ fn App() -> impl IntoView {
                         }
                     />
 
+                    // Nút Autofill 1 chạm khi website có tài khoản trong Vault
+                    {move || {
+                        let creds = available_credentials.get();
+                        if !creds.is_empty() {
+                            let first = creds[0].clone();
+                            view! {
+                                <button
+                                    class="autofill-btn"
+                                    title=format!("Autofill as {}", first.username)
+                                    on:click=move |_| {
+                                        let u = first.username.clone();
+                                        let s = first.secret.clone();
+                                        spawn_local(async move {
+                                            let _ = call_tauri::<_, ()>("execute_autofill", &ExecuteAutofillArgs {
+                                                username: u,
+                                                secret: s,
+                                            }).await;
+                                        });
+                                    }
+                                >
+                                    <IconKey />
+                                    <span>"Autofill"</span>
+                                </button>
+                            }.into_view()
+                        } else {
+                            view! { <div style="display:none;"></div> }.into_view()
+                        }
+                    }}
+
                     <button class="shield-btn" on:click=move |_| set_shield_open.set(!shield_open.get())>
                         <IconShield />
                         <span>{move || {
@@ -448,7 +499,7 @@ fn App() -> impl IntoView {
                 }).collect_view()}
             </div>
 
-            // BRAVE SHIELD CONTROLLER FLYOUT
+            // Shield Flyout Controller
             {move || if shield_open.get() {
                 let cur_url = omnibox_text.get();
                 let domain = extract_domain(&cur_url);
@@ -493,7 +544,7 @@ fn App() -> impl IntoView {
                             <span style="font-size:11px; color:var(--text-secondary)">"Trackers, Ads & Cookies Neutralized"</span>
                         </div>
                         <div style="font-size:11px; color:var(--text-secondary); text-align:center; margin-top:8px;">
-                            "Farbling Anti-Fingerprinting Active | Clean URLs"
+                            "Deep Subresource Guard Active | Farbling ON"
                         </div>
                     </div>
                 }
@@ -523,6 +574,29 @@ fn App() -> impl IntoView {
             } else {
                 view! { <div style="display:none;"></div> }
             }}
+
+            // Thanh Download Shelf đa luồng IDM góc dưới
+            {move || active_download.get().map(|prog| {
+                view! {
+                    <div class="download-shelf">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-weight:600; font-size:12px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                {prog.filename}
+                            </span>
+                            <span style="font-size:11px; color:var(--accent); font-family:var(--mono);">
+                                {format!("{} Mbps ({} threads)", prog.speed_mbps, prog.threads)}
+                            </span>
+                        </div>
+                        <div class="shelf-progress-bar">
+                            <div class="shelf-progress-fill" style=format!("width: {}%", prog.progress_percent)></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:var(--text-secondary);">
+                            <span>{format!("{:.1}%", prog.progress_percent)}</span>
+                            <span>{prog.status}</span>
+                        </div>
+                    </div>
+                }
+            })}
 
             <main class="viewport-body">
                 {move || {
