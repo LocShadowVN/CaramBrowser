@@ -67,6 +67,8 @@ fn main() {
             commands::switch_tab_view,
             commands::close_native_tab,
             commands::expand_ui_for_menu,
+            commands::get_site_shield,
+            commands::toggle_site_shield,
             commands::check_shield,
             commands::set_shield_level,
             commands::resolve_url,
