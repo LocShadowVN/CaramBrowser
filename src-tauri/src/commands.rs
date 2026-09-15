@@ -356,6 +356,25 @@ pub async fn close_native_tab(
 }
 
 #[tauri::command]
+pub async fn snooze_tab(
+    app: AppHandle,
+    vp: State<'_, ViewportManager>,
+    tab_id: String,
+) -> Result<(), String> {
+    let active_id = vp.active_tab.lock().unwrap().clone();
+    if active_id == tab_id {
+        return Err("Cannot snooze the active tab".into());
+    }
+
+    // Đóng và giải phóng hoàn toàn Webview con khỏi RAM
+    if let Some(wv) = app.get_webview(&tab_id) {
+        let _ = wv.close();
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn expand_ui_for_menu(
     app: AppHandle,
     vp: State<'_, ViewportManager>,
