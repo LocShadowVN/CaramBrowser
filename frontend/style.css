@@ -39,6 +39,32 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* Styling cho Tab Snoozed */
+.tab-chip.snoozed {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.tab-chip.snoozed:hover {
+  opacity: 0.9;
+}
+
+.btn-tab-snooze {
+  padding: 1px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  margin-right: 2px;
+}
+
+.btn-tab-snooze:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
 .shelf-progress-bar {
   width: 100%;
   height: 6px;
