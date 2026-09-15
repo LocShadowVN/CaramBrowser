@@ -52,6 +52,24 @@ pub struct DownloadRecord {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct DownloadProgressPayload {
+    pub id: String,
+    pub filename: String,
+    pub downloaded_bytes: u64,
+    pub total_bytes: u64,
+    pub speed_mbps: f64,
+    pub progress_percent: f32,
+    pub status: String,
+    pub threads: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct SiteCredential {
+    pub username: String,
+    pub secret: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ExtensionItem {
     pub id: String,
     pub name: String,
