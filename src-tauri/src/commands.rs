@@ -2,14 +2,15 @@ use crate::adblock::ShieldEngine;
 use crate::crypto::CryptoEngine;
 use crate::database::DbManager;
 use crate::dns::DnsResolver;
+use crate::downloader::DownloadEngine;
 use crate::extensions::ExtensionEngine;
 use shared::{
     AppConfig, BookmarkRecord, DecryptedVaultRecord, DnsTestResult, DownloadRecord, ExtensionItem,
-    HistoryRecord, PageContentResponse, ShieldLevel, ShieldStats, ShieldVerdict,
+    HistoryRecord, PageContentResponse, ShieldLevel, ShieldStats, ShieldVerdict, SiteCredential,
 };
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::{
     webview::WebviewBuilder,
     AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalSize, State, WebviewUrl,
@@ -29,6 +30,18 @@ impl ViewportManager {
             active_tab: Mutex::new(String::new()),
             is_internal: Mutex::new(true),
             menu_expanded: Mutex::new(false),
+        }
+    }
+}
+
+pub struct VaultSession {
+    pub master_pass: Mutex<Option<String>>,
+}
+
+impl VaultSession {
+    pub fn new() -> Self {
+        Self {
+            master_pass: Mutex::new(None),
         }
     }
 }
@@ -114,6 +127,85 @@ pub async fn handle_window_resize(app: &AppHandle, phys_size: PhysicalSize<u32>)
         }
     }
 
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn start_multithread_download(
+    app: AppHandle,
+    db: State<'_, DbManager>,
+    url: String,
+    connections: Option<usize>,
+) -> Result<String, String> {
+    let config = db.load_config();
+    let save_dir = PathBuf::from(&config.download_path);
+    let _ = tokio::fs::create_dir_all(&save_dir).await;
+
+    // Bọc DbManager vào Arc để chia sẻ an toàn với tác vụ ngầm
+    let db_inner = app.state::<DbManager>().inner().clone();
+    let db_arc = Arc::new(db_inner);
+
+    DownloadEngine::start_download(
+        app,
+        db_arc,
+        url,
+        save_dir,
+        None,
+        connections.unwrap_or(8),
+    ).await
+}
+
+#[tauri::command]
+pub fn check_vault_credentials_for_domain(
+    db: State<'_, DbManager>,
+    session: State<'_, VaultSession>,
+    domain: String,
+) -> Result<Vec<SiteCredential>, String> {
+    let master_pass = session.master_pass.lock().unwrap().clone();
+    let Some(pass) = master_pass else {
+        return Ok(Vec::new());
+    };
+
+    let rows = db.list_vault_rows().map_err(|e| e.to_string())?;
+    let mut matches = Vec::new();
+
+    for r in rows {
+        if r.website.to_lowercase().contains(&domain.to_lowercase()) {
+            if let Ok(secret) = CryptoEngine::decrypt_secret(&pass, &r.ciphertext, &r.nonce, &r.salt) {
+                matches.push(SiteCredential {
+                    username: r.username,
+                    secret,
+                });
+            }
+        }
+    }
+
+    Ok(matches)
+}
+
+#[tauri::command]
+pub async fn execute_autofill(
+    app: AppHandle,
+    vp: State<'_, ViewportManager>,
+    username: String,
+    secret: String,
+) -> Result<(), String> {
+    let active_id = vp.active_tab.lock().unwrap().clone();
+    if active_id.is_empty() {
+        return Err("No active tab".into());
+    }
+
+    let Some(wv) = app.get_webview(&active_id) else {
+        return Err("Webview not found".into());
+    };
+
+    let eval_script = format!(
+        r#"if (window.__CARAM_AUTOFILL) {{ window.__CARAM_AUTOFILL("{}", "{}"); }}"#,
+        username.replace('"', "\\\""),
+        secret.replace('"', "\\\"")
+    );
+
+    wv.eval(&eval_script).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -486,6 +578,7 @@ pub fn vault_setup(db: State<'_, DbManager>, master_pass: String) -> Result<(), 
 #[tauri::command]
 pub fn vault_save_credential(
     db: State<'_, DbManager>,
+    session: State<'_, VaultSession>,
     master_pass: String,
     website: String,
     username: String,
@@ -498,17 +591,27 @@ pub fn vault_save_credential(
     let (cipher, nonce, salt) = CryptoEngine::encrypt_secret(&master_pass, &secret)?;
     db.insert_vault_row(&website, &username, &cipher, &nonce, &salt)
         .map_err(|e| e.to_string())?;
+
+    // Lưu session mở khóa trong RAM cho tính năng Autofill
+    let mut s = session.master_pass.lock().unwrap();
+    *s = Some(master_pass);
     Ok(())
 }
 
 #[tauri::command]
 pub fn vault_read_all(
     db: State<'_, DbManager>,
+    session: State<'_, VaultSession>,
     master_pass: String,
 ) -> Result<Vec<DecryptedVaultRecord>, String> {
     let hash = db.get_master_hash().ok_or("Vault not initialized")?;
     if !CryptoEngine::verify_master_password(&master_pass, &hash) {
         return Err("Authentication failed: Wrong password".into());
+    }
+
+    {
+        let mut s = session.master_pass.lock().unwrap();
+        *s = Some(master_pass.clone());
     }
 
     let rows = db.list_vault_rows().map_err(|e| e.to_string())?;
