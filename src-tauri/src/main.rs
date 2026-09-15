@@ -5,10 +5,11 @@ mod commands;
 mod crypto;
 mod database;
 mod dns;
+mod downloader;
 mod extensions;
 
 use adblock::ShieldEngine;
-use commands::ViewportManager;
+use commands::{VaultSession, ViewportManager};
 use database::DbManager;
 use tauri::webview::WebviewBuilder;
 use tauri::window::WindowBuilder;
@@ -20,12 +21,14 @@ fn main() {
     let db = DbManager::init();
     let shield = ShieldEngine::new();
     let vp_manager = ViewportManager::new();
+    let vault_session = VaultSession::new();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(db)
         .manage(shield)
         .manage(vp_manager)
+        .manage(vault_session)
         .setup(|app| {
             let window = WindowBuilder::new(app, "main")
                 .title("Caram Browser")
@@ -69,6 +72,9 @@ fn main() {
             commands::expand_ui_for_menu,
             commands::get_site_shield,
             commands::toggle_site_shield,
+            commands::start_multithread_download,
+            commands::check_vault_credentials_for_domain,
+            commands::execute_autofill,
             commands::check_shield,
             commands::set_shield_level,
             commands::resolve_url,
