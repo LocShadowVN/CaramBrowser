@@ -6,7 +6,86 @@ pub fn get_webbridge_script() -> &'static str {
         'use strict';
 
         // ============================================================
-        // 1. NAVIGATOR & CLIENT HINTS SPOOFING (CHROME 130 ON LINUX)
+        // 1. WEBRTC IP LEAK SHIELD (CHỐNG RÒ RỈ IP NỘI BỘ QUA STUN/ICE)
+        // ============================================================
+        try {
+            if (window.RTCPeerConnection) {
+                const OrigPeerConnection = window.RTCPeerConnection;
+
+                function sanitizeCandidate(candStr) {
+                    if (!candStr || typeof candStr !== 'string') return candStr;
+                    // Chặn các ứng viên typ host chứa IP mạng LAN hoặc IPv6 thật
+                    const privateIpRegex = /(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|fe80::[0-9a-fA-F:]+)/;
+                    if (candStr.includes('typ host') && privateIpRegex.test(candStr)) {
+                        return null; // Triệt tiêu hoàn toàn candidate lộ IP
+                    }
+                    return candStr;
+                }
+
+                function sanitizeSdp(sdpStr) {
+                    if (!sdpStr || typeof sdpStr !== 'string') return sdpStr;
+                    return sdpStr.split('\r\n').filter(line => {
+                        if (line.startsWith('a=candidate:') && line.includes('typ host')) {
+                            const privateIpRegex = /(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})/;
+                            return !privateIpRegex.test(line);
+                        }
+                        return true;
+                    }).join('\r\n');
+                }
+
+                window.RTCPeerConnection = function(config, constraints) {
+                    const pc = new OrigPeerConnection(config, constraints);
+
+                    // Hook createOffer để lọc SDP
+                    const origCreateOffer = pc.createOffer.bind(pc);
+                    pc.createOffer = function(options) {
+                        return origCreateOffer(options).then(offer => {
+                            offer.sdp = sanitizeSdp(offer.sdp);
+                            return offer;
+                        });
+                    };
+
+                    // Hook createAnswer để lọc SDP
+                    const origCreateAnswer = pc.createAnswer.bind(pc);
+                    pc.createAnswer = function(options) {
+                        return origCreateAnswer(options).then(answer => {
+                            answer.sdp = sanitizeSdp(answer.sdp);
+                            return answer;
+                        });
+                    };
+
+                    // Hook onicecandidate property setter
+                    let userIceHandler = null;
+                    Object.defineProperty(pc, 'onicecandidate', {
+                        set: function(fn) {
+                            userIceHandler = fn;
+                            pc.addEventListener('icecandidate', function(e) {
+                                if (e.candidate && e.candidate.candidate) {
+                                    const sanitized = sanitizeCandidate(e.candidate.candidate);
+                                    if (!sanitized) {
+                                        e.stopImmediatePropagation();
+                                        return; // Chặn sự kiện gửi IP về web
+                                    }
+                                }
+                                if (typeof userIceHandler === 'function') {
+                                    userIceHandler.apply(this, arguments);
+                                }
+                            });
+                        },
+                        get: function() {
+                            return userIceHandler;
+                        }
+                    });
+
+                    return pc;
+                };
+
+                window.RTCPeerConnection.prototype = OrigPeerConnection.prototype;
+            }
+        } catch (e) {}
+
+        // ============================================================
+        // 2. NAVIGATOR & CLIENT HINTS SPOOFING (CHROME 130 ON LINUX)
         // ============================================================
         try {
             const CHROME_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
@@ -18,7 +97,6 @@ pub fn get_webbridge_script() -> &'static str {
             Object.defineProperty(navigator, 'vendorSub', { get: () => '', configurable: true });
             Object.defineProperty(navigator, 'productSub', { get: () => '20030107', configurable: true });
 
-            // Polyfill Client Hints (navigator.userAgentData) cho Google Meet / Discord
             const uaData = {
                 brands: [
                     { brand: 'Google Chrome', version: '130' },
@@ -52,7 +130,7 @@ pub fn get_webbridge_script() -> &'static str {
         } catch (e) {}
 
         // ============================================================
-        // 2. WINDOW.CHROME RUNTIME & INTERNAL METRICS POLYFILL
+        // 3. WINDOW.CHROME RUNTIME & INTERNAL METRICS POLYFILL
         // ============================================================
         try {
             if (!window.chrome) {
@@ -112,7 +190,7 @@ pub fn get_webbridge_script() -> &'static str {
         } catch (e) {}
 
         // ============================================================
-        // 3. WEBRTC & MEDIADEVICES CONSTRAINTS SHIM (MEET / DISCORD)
+        // 4. WEBRTC & MEDIADEVICES CONSTRAINTS SHIM (MEET / DISCORD)
         // ============================================================
         try {
             if (window.MediaStreamTrack && !MediaStreamTrack.prototype.getCapabilities) {
@@ -150,7 +228,6 @@ pub fn get_webbridge_script() -> &'static str {
                 };
             }
 
-            // Permissions query guard: Tránh văng ngoại lệ khi web hỏi các quyền lạ
             if (navigator.permissions && navigator.permissions.query) {
                 const origQuery = navigator.permissions.query.bind(navigator.permissions);
                 navigator.permissions.query = function(param) {
@@ -160,7 +237,6 @@ pub fn get_webbridge_script() -> &'static str {
                 };
             }
 
-            // Screen Orientation Mock
             if (window.screen && !window.screen.orientation) {
                 window.screen.orientation = {
                     type: 'landscape-primary',
