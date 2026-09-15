@@ -10,7 +10,7 @@ use shared::{
 };
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use tauri::{
     webview::WebviewBuilder,
     AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalSize, State, WebviewUrl,
@@ -141,13 +141,8 @@ pub async fn start_multithread_download(
     let save_dir = PathBuf::from(&config.download_path);
     let _ = tokio::fs::create_dir_all(&save_dir).await;
 
-    // Bọc DbManager vào Arc để chia sẻ an toàn với tác vụ ngầm
-    let db_inner = app.state::<DbManager>().inner().clone();
-    let db_arc = Arc::new(db_inner);
-
     DownloadEngine::start_download(
         app,
-        db_arc,
         url,
         save_dir,
         None,
@@ -592,7 +587,6 @@ pub fn vault_save_credential(
     db.insert_vault_row(&website, &username, &cipher, &nonce, &salt)
         .map_err(|e| e.to_string())?;
 
-    // Lưu session mở khóa trong RAM cho tính năng Autofill
     let mut s = session.master_pass.lock().unwrap();
     *s = Some(master_pass);
     Ok(())
