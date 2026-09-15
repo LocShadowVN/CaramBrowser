@@ -161,7 +161,6 @@ fn App() -> impl IntoView {
         });
     });
 
-    // Lắng nghe sự kiện tiến trình tải đa luồng IDM từ Tauri backend
     spawn_local(async move {
         let cb = Closure::wrap(Box::new(move |event_obj: JsValue| {
             if let Ok(payload_val) = js_sys::Reflect::get(&event_obj, &JsValue::from_str("payload")) {
@@ -178,7 +177,7 @@ fn App() -> impl IntoView {
         let domain = extract_domain(target_url);
         if !domain.starts_with("Caram") && !domain.is_empty() {
             let d1 = domain.clone();
-            let d2 = domain.clone();
+            let d2 = domain;
             spawn_local(async move {
                 if let Ok(enabled) = call_tauri::<_, bool>("get_site_shield", &GetSiteShieldArgs { domain: d1 }).await {
                     set_current_site_shield.set(enabled);
@@ -519,11 +518,12 @@ fn App() -> impl IntoView {
                 let domain = extract_domain(&cur_url);
                 let dom_for_toggle = domain.clone();
                 let is_site_enabled = current_site_shield.get();
+                let badge_style = if is_site_enabled { "color:var(--accent-shield)" } else { "color:var(--danger)" };
                 view! {
                     <div class="shield-flyout">
                         <div class="flyout-head">
                             <strong>"Caram Shield Core"</strong>
-                            <span class="shield-status-badge" style=format!("color:{}", if is_site_enabled { "var(--accent-shield)" } else { "var(--danger)" })>
+                            <span class="shield-status-badge" style=badge_style>
                                 {if is_site_enabled { "Shields UP" } else { "Shields DOWN" }}
                             </span>
                         </div>
@@ -533,7 +533,7 @@ fn App() -> impl IntoView {
                             <label class="switch">
                                 <input
                                     type="checkbox"
-                                    checked=is_site_enabled
+                                    prop:checked=is_site_enabled
                                     on:change=move |ev| {
                                         let checked = event_target_checked(&ev);
                                         set_current_site_shield.set(checked);
@@ -558,3 +558,90 @@ fn App() -> impl IntoView {
                             <span style="font-size:11px; color:var(--text-secondary)">"Trackers, Ads & Cookies Neutralized"</span>
                         </div>
                         <div style="font-size:11px; color:var(--text-secondary); text-align:center; margin-top:8px;">
+                            "Deep Subresource Guard Active | Farbling ON"
+                        </div>
+                    </div>
+                }
+            } else {
+                view! { <div style="display:none;"></div> }
+            }}
+
+            {move || if menu_open.get() {
+                view! {
+                    <div class="hamburger-menu">
+                        <div class="menu-item" on:click=move |_| navigate("caram://newtab".into(), true)>"New Tab"</div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://history".into(), true)>"History"</div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://downloads".into(), true)>"Downloads"</div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://bookmarks".into(), true)>"Bookmarks"</div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://extensions".into(), true)>"Extensions"</div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://passwords".into(), true)>"Passwords (Vault)"</div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://settings".into(), true)>"Settings"</div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item" on:click=move |_| {
+                            spawn_local(async move {
+                                let _ = call_tauri::<_, ()>("toggle_devtools", &EmptyArgs {}).await;
+                            });
+                        }>"Developer Tools (F12)"</div>
+                    </div>
+                }
+            } else {
+                view! { <div style="display:none;"></div> }
+            }}
+
+            // Thanh Download Shelf đa luồng IDM góc dưới
+            {move || active_download.get().map(|prog| {
+                view! {
+                    <div class="download-shelf">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-weight:600; font-size:12px; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                {prog.filename}
+                            </span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:11px; color:var(--accent); font-family:var(--mono);">
+                                    {format!("{} Mbps ({} threads)", prog.speed_mbps, prog.threads)}
+                                </span>
+                                <button class="icon-btn" style="padding:2px; font-size:10px;" on:click=move |_| set_active_download.set(None)>
+                                    <IconClose />
+                                </button>
+                            </div>
+                        </div>
+                        <div class="shelf-progress-bar">
+                            <div class="shelf-progress-fill" style=format!("width: {}%", prog.progress_percent)></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:var(--text-secondary);">
+                            <span>{format!("{:.1}%", prog.progress_percent)}</span>
+                            <span>{prog.status}</span>
+                        </div>
+                    </div>
+                }
+            })}
+
+            <main class="viewport-body">
+                {move || {
+                    let cur_id = active_tab_id.get();
+                    let current_tab = tabs.get().into_iter().find(|t| t.id == cur_id);
+                    let mode = current_tab.as_ref().map(|t| t.page_mode.clone()).unwrap_or(PageMode::NewTab);
+
+                    match mode {
+                        PageMode::NewTab => view! { <NewTabView on_navigate=move |u| navigate(u, true) /> }.into_view(),
+                        PageMode::Settings => view! { <SettingsView config=config set_config=set_config /> }.into_view(),
+                        PageMode::History => view! { <HistoryView on_navigate=move |u| navigate(u, true) /> }.into_view(),
+                        PageMode::Bookmarks => view! { <BookmarksView on_navigate=move |u| navigate(u, true) /> }.into_view(),
+                        PageMode::Downloads => view! { <DownloadsView /> }.into_view(),
+                        PageMode::Extensions => view! { <ExtensionsView /> }.into_view(),
+                        PageMode::Vault => view! { <VaultView /> }.into_view(),
+                        PageMode::Web => view! {
+                            <div style="width:100%; height:100%; background:transparent;"></div>
+                        }.into_view(),
+                    }
+                }}
+            </main>
+        </div>
+    }
+}
+
+fn main() {
+    console_error_panic_hook::set_once();
+    mount_to_body(|| view! { <App/> })
+}
