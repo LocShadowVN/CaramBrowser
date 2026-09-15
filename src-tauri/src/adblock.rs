@@ -236,9 +236,9 @@ impl ShieldEngine {
 
                 const OrigWS = window.WebSocket;
                 window.WebSocket = function(url, protocols) {{
-                    if (isTrackingUrl(url)) {
+                    if (isTrackingUrl(url)) {{
                         throw new Error('Blocked by Caram Shield Deep Network Guard');
-                    }
+                    }}
                     return new OrigWS(url, protocols);
                 }};
 
