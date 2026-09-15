@@ -50,6 +50,17 @@ struct SaveBookmarkArgs {
     title: String,
 }
 
+#[derive(Serialize)]
+struct GetSiteShieldArgs {
+    domain: String,
+}
+
+#[derive(Serialize)]
+struct ToggleSiteShieldArgs {
+    domain: String,
+    enabled: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PageMode {
     Web,
@@ -73,6 +84,19 @@ pub struct BrowserTab {
     pub page_mode: PageMode,
 }
 
+fn extract_domain(url_str: &str) -> String {
+    if let Ok(u) = web_sys::Url::new(url_str) {
+        let h = u.hostname();
+        if !h.is_empty() {
+            return h;
+        }
+    }
+    if url_str.starts_with("caram://") {
+        return "Caram System".into();
+    }
+    url_str.to_string()
+}
+
 #[component]
 fn App() -> impl IntoView {
     let (tab_counter, set_tab_counter) = create_signal(1u64);
@@ -91,6 +115,7 @@ fn App() -> impl IntoView {
     let (shield_open, set_shield_open) = create_signal(false);
     let (menu_open, set_menu_open) = create_signal(false);
     let (bookmarks, set_bookmarks) = create_signal(Vec::<BookmarkRecord>::new());
+    let (current_site_shield, set_current_site_shield) = create_signal(true);
 
     let (config, set_config) = create_signal(AppConfig::default());
 
@@ -118,6 +143,17 @@ fn App() -> impl IntoView {
             let _ = call_tauri::<_, ()>("expand_ui_for_menu", &MenuExpandArgs { expanded: open }).await;
         });
     });
+
+    let sync_site_shield_status = move |target_url: &str| {
+        let domain = extract_domain(target_url);
+        if !domain.starts_with("Caram") && !domain.is_empty() {
+            spawn_local(async move {
+                if let Ok(enabled) = call_tauri::<_, bool>("get_site_shield", &GetSiteShieldArgs { domain }).await {
+                    set_current_site_shield.set(enabled);
+                }
+            });
+        }
+    };
 
     let navigate = move |target_url: String, record_history: bool| {
         let engine = config.get().search_engine;
@@ -213,6 +249,7 @@ fn App() -> impl IntoView {
             }
             set_tabs.set(list);
             set_omnibox_text.set(resolved.clone());
+            sync_site_shield_status(&resolved);
 
             let _ = call_tauri::<_, ()>("open_native_tab", &OpenNativeTabArgs {
                 tab_id: cur_id,
@@ -236,7 +273,8 @@ fn App() -> impl IntoView {
                                 let list = tabs.get();
                                 let is_int = list.iter().find(|t| t.id == id_c).map(|t| t.url.starts_with("caram://")).unwrap_or(true);
                                 let cur_url = list.iter().find(|t| t.id == id_c).map(|t| t.url.clone()).unwrap_or_default();
-                                set_omnibox_text.set(if cur_url == "caram://newtab" { String::new() } else { cur_url });
+                                set_omnibox_text.set(if cur_url == "caram://newtab" { String::new() } else { cur_url.clone() });
+                                sync_site_shield_status(&cur_url);
                                 let all_ids: Vec<String> = list.iter().map(|t| t.id.clone()).collect();
                                 spawn_local(async move {
                                     let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
@@ -362,7 +400,7 @@ fn App() -> impl IntoView {
                     <input
                         type="text"
                         class="omnibox-input"
-                        placeholder="Search web or enter address"
+                        placeholder="Search web or enter address (Auto-Cleaned & De-AMP)"
                         prop:value=omnibox_text
                         on:input=move |ev| set_omnibox_text.set(event_target_value(&ev))
                         on:keydown=move |ev: web_sys::KeyboardEvent| {
@@ -410,22 +448,52 @@ fn App() -> impl IntoView {
                 }).collect_view()}
             </div>
 
+            // BRAVE SHIELD CONTROLLER FLYOUT
             {move || if shield_open.get() {
+                let cur_url = omnibox_text.get();
+                let domain = extract_domain(&cur_url);
+                let dom_for_toggle = domain.clone();
+                let is_site_enabled = current_site_shield.get();
                 view! {
                     <div class="shield-flyout">
                         <div class="flyout-head">
                             <strong>"Caram Shield Core"</strong>
-                            <span style="color:var(--accent-shield); font-size:12px;">"Active Protection"</span>
+                            <span class="shield-status-badge" style=format!("color:{}", if is_site_enabled { "var(--accent-shield)" } else { "var(--danger)" })>
+                                {if is_site_enabled { "Shields UP" } else { "Shields DOWN" }}
+                            </span>
                         </div>
+
+                        <div class="shield-site-box">
+                            <div class="site-name">{domain}</div>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    checked=is_site_enabled
+                                    on:change=move |ev| {
+                                        let checked = event_target_checked(&ev);
+                                        set_current_site_shield.set(checked);
+                                        let d = dom_for_toggle.clone();
+                                        spawn_local(async move {
+                                            let _ = call_tauri::<_, ()>("toggle_site_shield", &ToggleSiteShieldArgs {
+                                                domain: d,
+                                                enabled: checked,
+                                            }).await;
+                                        });
+                                    }
+                                />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+
                         <div class="flyout-stat">
                             <div class="num">{move || {
                                 let cur = active_tab_id.get();
                                 tabs.get().into_iter().find(|t| t.id == cur).map(|x| x.blocked_count).unwrap_or(0)
                             }}</div>
-                            <span style="font-size:11px; color:var(--text-secondary)">"Trackers & Ads Intercepted"</span>
+                            <span style="font-size:11px; color:var(--text-secondary)">"Trackers, Ads & Cookies Neutralized"</span>
                         </div>
-                        <div style="font-size:12px; color:var(--text-secondary); text-align:center;">
-                            "Brave-grade Farbling, Bloom filter, GDPR Cookie killer & tokenized pattern trie."
+                        <div style="font-size:11px; color:var(--text-secondary); text-align:center; margin-top:8px;">
+                            "Farbling Anti-Fingerprinting Active | Clean URLs"
                         </div>
                     </div>
                 }
