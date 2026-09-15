@@ -247,13 +247,14 @@ pub async fn open_native_tab(
         let _ = wv.set_focus();
         wv.navigate(parsed_url).map_err(|e| e.to_string())?;
     } else {
-        let init_script = if shield_enabled {
+       let init_script = if shield_enabled {
             shield.get_injected_script()
         } else {
-            "window.isShieldDisabled = true;".to_string()
+            crate::bridge::get_webbridge_script().to_string()
         };
 
         let wv_builder = WebviewBuilder::new(&tab_id, WebviewUrl::External(parsed_url))
+            .user_agent(crate::bridge::CHROME_USER_AGENT)
             .initialization_script(&init_script);
 
         let wv = window.add_child(wv_builder, content_pos, content_size)
