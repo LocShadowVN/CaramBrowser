@@ -43,6 +43,11 @@ struct CloseNativeTabArgs {
 }
 
 #[derive(Serialize)]
+struct SnoozeTabArgs {
+    tab_id: String,
+}
+
+#[derive(Serialize)]
 struct MenuExpandArgs {
     expanded: bool,
 }
@@ -96,6 +101,8 @@ pub struct BrowserTab {
     pub history: Vec<String>,
     pub history_index: usize,
     pub page_mode: PageMode,
+    pub is_snoozed: bool,
+    pub last_active: f64,
 }
 
 fn extract_domain(url_str: &str) -> String {
@@ -122,6 +129,8 @@ fn App() -> impl IntoView {
         history: vec!["caram://newtab".into()],
         history_index: 0,
         page_mode: PageMode::NewTab,
+        is_snoozed: false,
+        last_active: js_sys::Date::now(),
     }]);
 
     let (active_tab_id, set_active_tab_id) = create_signal("tab_1".to_string());
@@ -131,7 +140,6 @@ fn App() -> impl IntoView {
     let (bookmarks, set_bookmarks) = create_signal(Vec::<BookmarkRecord>::new());
     let (current_site_shield, set_current_site_shield) = create_signal(true);
     let (available_credentials, set_available_credentials) = create_signal(Vec::<SiteCredential>::new());
-
     let (active_download, set_active_download) = create_signal(Option::<DownloadProgressPayload>::None);
 
     let (config, set_config) = create_signal(AppConfig::default());
@@ -161,6 +169,7 @@ fn App() -> impl IntoView {
         });
     });
 
+    // Lắng nghe sự kiện tiến trình tải đa luồng IDM
     spawn_local(async move {
         let cb = Closure::wrap(Box::new(move |event_obj: JsValue| {
             if let Ok(payload_val) = js_sys::Reflect::get(&event_obj, &JsValue::from_str("payload")) {
@@ -171,6 +180,40 @@ fn App() -> impl IntoView {
         }) as Box<dyn FnMut(JsValue)>);
         let _ = tauri_ipc::listen("download-progress", cb.as_ref().unchecked_ref()).await;
         cb.forget();
+    });
+
+    // SMART TAB SNOOZER: Tiến trình kiểm tra ru ngủ tab nền sau 10 phút (600,000ms)
+    spawn_local(async move {
+        loop {
+            // Kiểm tra mỗi 30 giây
+            let promise = js_sys::Promise::new(&mut |resolve, _| {
+                if let Some(w) = web_sys::window() {
+                    let _ = w.set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, 30_000);
+                }
+            });
+            let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+
+            let now = js_sys::Date::now();
+            let cur_active = active_tab_id.get();
+            let mut list = tabs.get();
+            let mut changed = false;
+
+            for t in list.iter_mut() {
+                // Điều kiện: Tab nền + Chưa snoozed + Không phải tab nội bộ + Quá 10 phút không click
+                if t.id != cur_active && !t.is_snoozed && !t.url.starts_with("caram://") && (now - t.last_active > 600_000.0) {
+                    t.is_snoozed = true;
+                    changed = true;
+                    let id_c = t.id.clone();
+                    spawn_local(async move {
+                        let _ = call_tauri::<_, ()>("snooze_tab", &SnoozeTabArgs { tab_id: id_c }).await;
+                    });
+                }
+            }
+
+            if changed {
+                set_tabs.set(list);
+            }
+        }
     });
 
     let sync_site_state = move |target_url: &str| {
@@ -204,6 +247,8 @@ fn App() -> impl IntoView {
                 return;
             }
             let tab = tab_opt.unwrap();
+            tab.last_active = js_sys::Date::now();
+            tab.is_snoozed = false;
 
             let target = target_url.trim().to_string();
 
@@ -301,26 +346,75 @@ fn App() -> impl IntoView {
                     {move || tabs.get().into_iter().map(|tab| {
                         let id = tab.id.clone();
                         let id_del = tab.id.clone();
+                        let id_snooze = tab.id.clone();
                         let active = tab.id == active_tab_id.get();
+                        let snoozed = tab.is_snoozed;
                         view! {
-                            <div class=format!("tab-chip {}", if active { "active" } else { "" }) on:click=move |_| {
-                                let id_c = id.clone();
-                                set_active_tab_id.set(id_c.clone());
-                                let list = tabs.get();
-                                let is_int = list.iter().find(|t| t.id == id_c).map(|t| t.url.starts_with("caram://")).unwrap_or(true);
-                                let cur_url = list.iter().find(|t| t.id == id_c).map(|t| t.url.clone()).unwrap_or_default();
-                                set_omnibox_text.set(if cur_url == "caram://newtab" { String::new() } else { cur_url.clone() });
-                                sync_site_state(&cur_url);
-                                let all_ids: Vec<String> = list.iter().map(|t| t.id.clone()).collect();
-                                spawn_local(async move {
-                                    let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
-                                        active_tab_id: id_c,
-                                        is_internal: is_int,
-                                        all_tab_ids: all_ids,
-                                    }).await;
-                                });
-                            }>
+                            <div
+                                class=format!("tab-chip {} {}", if active { "active" } else { "" }, if snoozed { "snoozed" } else { "" })
+                                on:click=move |_| {
+                                    let id_c = id.clone();
+                                    set_active_tab_id.set(id_c.clone());
+                                    let mut list = tabs.get();
+                                    let is_int = list.iter().find(|t| t.id == id_c).map(|t| t.url.starts_with("caram://")).unwrap_or(true);
+                                    let cur_url = list.iter().find(|t| t.id == id_c).map(|t| t.url.clone()).unwrap_or_default();
+                                    let was_snoozed = list.iter().find(|t| t.id == id_c).map(|t| t.is_snoozed).unwrap_or(false);
+
+                                    // Cập nhật timestamp hoạt động và đánh thức tab nếu đang ngủ
+                                    if let Some(t) = list.iter_mut().find(|t| t.id == id_c) {
+                                        t.last_active = js_sys::Date::now();
+                                        t.is_snoozed = false;
+                                    }
+                                    set_tabs.set(list);
+
+                                    set_omnibox_text.set(if cur_url == "caram://newtab" { String::new() } else { cur_url.clone() });
+                                    sync_site_state(&cur_url);
+
+                                    let all_ids: Vec<String> = tabs.get().iter().map(|t| t.id.clone()).collect();
+                                    spawn_local(async move {
+                                        if was_snoozed && !is_int {
+                                            // Đánh thức tức thì: Tạo lại Webview từ URL đã lưu
+                                            let _ = call_tauri::<_, ()>("open_native_tab", &OpenNativeTabArgs {
+                                                tab_id: id_c.clone(),
+                                                url: cur_url,
+                                            }).await;
+                                        }
+                                        let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
+                                            active_tab_id: id_c,
+                                            is_internal: is_int,
+                                            all_tab_ids: all_ids,
+                                        }).await;
+                                    });
+                                }
+                            >
                                 <span>{tab.title}</span>
+
+                                // Nút ru ngủ thủ công cho tab nền để giải phóng RAM
+                                {if !active && !snoozed && !tab.url.starts_with("caram://") {
+                                    view! {
+                                        <div
+                                            class="btn-tab-snooze"
+                                            title="Snooze tab to free RAM"
+                                            on:click=move |ev| {
+                                                ev.stop_propagation();
+                                                let id_s = id_snooze.clone();
+                                                let mut t_list = tabs.get();
+                                                if let Some(t) = t_list.iter_mut().find(|x| x.id == id_s) {
+                                                    t.is_snoozed = true;
+                                                }
+                                                set_tabs.set(t_list);
+                                                spawn_local(async move {
+                                                    let _ = call_tauri::<_, ()>("snooze_tab", &SnoozeTabArgs { tab_id: id_s }).await;
+                                                });
+                                            }
+                                        >
+                                            "💤"
+                                        </div>
+                                    }.into_view()
+                                } else {
+                                    view! { <div style="display:none;"></div> }.into_view()
+                                }}
+
                                 <div class="btn-tab-close" on:click=move |ev| {
                                     ev.stop_propagation();
                                     let mut t_list = tabs.get();
@@ -359,6 +453,8 @@ fn App() -> impl IntoView {
                         history: vec!["caram://newtab".into()],
                         history_index: 0,
                         page_mode: PageMode::NewTab,
+                        is_snoozed: false,
+                        last_active: js_sys::Date::now(),
                     });
                     set_tabs.set(list);
                     set_active_tab_id.set(new_id.clone());
@@ -558,7 +654,7 @@ fn App() -> impl IntoView {
                             <span style="font-size:11px; color:var(--text-secondary)">"Trackers, Ads & Cookies Neutralized"</span>
                         </div>
                         <div style="font-size:11px; color:var(--text-secondary); text-align:center; margin-top:8px;">
-                            "Deep Subresource Guard Active | Farbling ON"
+                            "WebRTC Leak Shield Active | Farbling ON"
                         </div>
                     </div>
                 }
