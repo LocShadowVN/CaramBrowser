@@ -70,6 +70,7 @@ fn main() {
             commands::open_native_tab,
             commands::switch_tab_view,
             commands::close_native_tab,
+            commands::snooze_tab,
             commands::expand_ui_for_menu,
             commands::get_site_shield,
             commands::toggle_site_shield,
