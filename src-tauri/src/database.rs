@@ -75,6 +75,10 @@ impl DbManager {
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS site_shield_exceptions (
+                domain TEXT PRIMARY KEY,
+                shield_enabled INTEGER NOT NULL
+            );
             INSERT OR IGNORE INTO settings (key, value) VALUES ('search_engine', 'https://search.brave.com/search?q=');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('shield_level', 'Standard');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('doh_provider', 'Cloudflare');
@@ -89,6 +93,26 @@ impl DbManager {
         Self {
             conn: Mutex::new(conn),
         }
+    }
+
+    pub fn get_site_shield_status(&self, domain: &str) -> rusqlite::Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT shield_enabled FROM site_shield_exceptions WHERE domain = ?1")?;
+        let mut rows = stmt.query_map(params![domain], |r| r.get::<_, i64>(0))?;
+        if let Some(Ok(enabled)) = rows.next() {
+            Ok(enabled == 1)
+        } else {
+            Ok(true)
+        }
+    }
+
+    pub fn set_site_shield_status(&self, domain: &str, enabled: bool) -> rusqlite::Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT OR REPLACE INTO site_shield_exceptions (domain, shield_enabled) VALUES (?1, ?2)",
+            params![domain, if enabled { 1 } else { 0 }],
+        )?;
+        Ok(())
     }
 
     pub fn insert_history(&self, url: &str, title: &str) -> rusqlite::Result<()> {
