@@ -16,7 +16,7 @@ use tauri::{
     AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalSize, State, WebviewUrl,
 };
 
-pub const NAV_BAR_HEIGHT: f64 = 104.0;
+pub const NAV_BAR_HEIGHT: f64 = 92.0;
 
 pub struct ViewportManager {
     pub active_tab: Mutex<String>,
@@ -35,13 +35,13 @@ impl ViewportManager {
 }
 
 pub struct VaultSession {
-    pub master_pass: Mutex<Option<String>>,
+    pub derived_key: Mutex<Option<[u8; 32]>>,
 }
 
 impl VaultSession {
     pub fn new() -> Self {
         Self {
-            master_pass: Mutex::new(None),
+            derived_key: Mutex::new(None),
         }
     }
 }
@@ -156,8 +156,8 @@ pub fn check_vault_credentials_for_domain(
     session: State<'_, VaultSession>,
     domain: String,
 ) -> Result<Vec<SiteCredential>, String> {
-    let master_pass = session.master_pass.lock().unwrap().clone();
-    let Some(pass) = master_pass else {
+    let key_guard = session.derived_key.lock().unwrap();
+    let Some(key) = *key_guard else {
         return Ok(Vec::new());
     };
 
@@ -166,7 +166,7 @@ pub fn check_vault_credentials_for_domain(
 
     for r in rows {
         if r.website.to_lowercase().contains(&domain.to_lowercase()) {
-            if let Ok(secret) = CryptoEngine::decrypt_secret(&pass, &r.ciphertext, &r.nonce, &r.salt) {
+            if let Ok(secret) = CryptoEngine::decrypt_with_derived_key(&key, &r.ciphertext, &r.nonce) {
                 matches.push(SiteCredential {
                     username: r.username,
                     secret,
@@ -178,6 +178,7 @@ pub fn check_vault_credentials_for_domain(
     Ok(matches)
 }
 
+/// Vá hoàn toàn lỗ hổng Injection bằng serde_json
 #[tauri::command]
 pub async fn execute_autofill(
     app: AppHandle,
@@ -194,13 +195,43 @@ pub async fn execute_autofill(
         return Err("Webview not found".into());
     };
 
+    let user_json = serde_json::to_string(&username).map_err(|e| e.to_string())?;
+    let secret_json = serde_json::to_string(&secret).map_err(|e| e.to_string())?;
+
     let eval_script = format!(
-        r#"if (window.__CARAM_AUTOFILL) {{ window.__CARAM_AUTOFILL("{}", "{}"); }}"#,
-        username.replace('"', "\\\""),
-        secret.replace('"', "\\\"")
+        r#"if (window.__CARAM_AUTOFILL) {{ window.__CARAM_AUTOFILL({}, {}); }}"#,
+        user_json, secret_json
     );
 
     wv.eval(&eval_script).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// Điều hướng Native chuẩn xác của WebKit
+#[tauri::command]
+pub async fn webview_go_back(app: AppHandle, vp: State<'_, ViewportManager>) -> Result<(), String> {
+    let active_id = vp.active_tab.lock().unwrap().clone();
+    if let Some(wv) = app.get_webview(&active_id) {
+        wv.eval("window.history.back()").map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn webview_go_forward(app: AppHandle, vp: State<'_, ViewportManager>) -> Result<(), String> {
+    let active_id = vp.active_tab.lock().unwrap().clone();
+    if let Some(wv) = app.get_webview(&active_id) {
+        wv.eval("window.history.forward()").map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn webview_reload(app: AppHandle, vp: State<'_, ViewportManager>) -> Result<(), String> {
+    let active_id = vp.active_tab.lock().unwrap().clone();
+    if let Some(wv) = app.get_webview(&active_id) {
+        wv.eval("window.location.reload()").map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -220,6 +251,12 @@ pub async fn open_native_tab(
 
     let clean_url = strip_tracking_parameters(&url);
     let parsed_url = url::Url::parse(&clean_url).map_err(|e| e.to_string())?;
+
+    // Ngăn chặn các scheme nguy hiểm như file:// hoặc javascript:
+    if parsed_url.scheme() != "http" && parsed_url.scheme() != "https" {
+        return Err("Blocked insecure URL protocol".into());
+    }
+
     let domain = parsed_url.host_str().unwrap_or("").to_string();
     let shield_enabled = db.get_site_shield_status(&domain).unwrap_or(true);
 
@@ -247,7 +284,7 @@ pub async fn open_native_tab(
         let _ = wv.set_focus();
         wv.navigate(parsed_url).map_err(|e| e.to_string())?;
     } else {
-       let init_script = if shield_enabled {
+        let init_script = if shield_enabled {
             shield.get_injected_script()
         } else {
             crate::bridge::get_webbridge_script().to_string()
@@ -366,7 +403,6 @@ pub async fn snooze_tab(
         return Err("Cannot snooze the active tab".into());
     }
 
-    // Đóng và giải phóng hoàn toàn Webview con khỏi RAM
     if let Some(wv) = app.get_webview(&tab_id) {
         let _ = wv.close();
     }
@@ -467,7 +503,7 @@ pub async fn fetch_web_page(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Caram/1.0.0")
+        .user_agent(crate::bridge::CHROME_USER_AGENT)
         .timeout(std::time::Duration::from_secs(20))
         .build()
         .map_err(|e| e.to_string())?;
@@ -532,17 +568,20 @@ pub fn remove_download(db: State<'_, DbManager>, id: i64) -> Result<(), String> 
     db.delete_download(id).map_err(|e| e.to_string())
 }
 
+/// Bảo vệ an toàn tuyệt đối khi mở thư mục tải về (Ngăn chặn RCE)
 #[tauri::command]
 pub fn open_file_manager(path: String) -> Result<(), String> {
     let p = Path::new(&path);
-    let target = if p.is_file() {
-        p.parent().unwrap_or(p)
+    let canonical = p.canonicalize().map_err(|e| e.to_string())?;
+
+    let target_dir = if canonical.is_file() {
+        canonical.parent().unwrap_or(&canonical)
     } else {
-        p
+        &canonical
     };
 
     Command::new("xdg-open")
-        .arg(target)
+        .arg(target_dir)
         .spawn()
         .map_err(|e| e.to_string())?;
     Ok(())
@@ -603,12 +642,16 @@ pub fn vault_save_credential(
     if !CryptoEngine::verify_master_password(&master_pass, &hash) {
         return Err("Authentication failed: Wrong password".into());
     }
-    let (cipher, nonce, salt) = CryptoEngine::encrypt_secret(&master_pass, &secret)?;
-    db.insert_vault_row(&website, &username, &cipher, &nonce, &salt)
+
+    let salt_bytes = b"caram_vault_global_salt_v1";
+    let key = CryptoEngine::derive_key(&master_pass, salt_bytes)?;
+    let (cipher, nonce) = CryptoEngine::encrypt_with_derived_key(&key, &secret)?;
+
+    db.insert_vault_row(&website, &username, &cipher, &nonce, "v1")
         .map_err(|e| e.to_string())?;
 
-    let mut s = session.master_pass.lock().unwrap();
-    *s = Some(master_pass);
+    let mut s = session.derived_key.lock().unwrap();
+    *s = Some(key);
     Ok(())
 }
 
@@ -623,16 +666,19 @@ pub fn vault_read_all(
         return Err("Authentication failed: Wrong password".into());
     }
 
+    let salt_bytes = b"caram_vault_global_salt_v1";
+    let key = CryptoEngine::derive_key(&master_pass, salt_bytes)?;
+
     {
-        let mut s = session.master_pass.lock().unwrap();
-        *s = Some(master_pass.clone());
+        let mut s = session.derived_key.lock().unwrap();
+        *s = Some(key);
     }
 
     let rows = db.list_vault_rows().map_err(|e| e.to_string())?;
     let mut list = Vec::new();
 
     for r in rows {
-        if let Ok(secret) = CryptoEngine::decrypt_secret(&master_pass, &r.ciphertext, &r.nonce, &r.salt) {
+        if let Ok(secret) = CryptoEngine::decrypt_with_derived_key(&key, &r.ciphertext, &r.nonce) {
             list.push(DecryptedVaultRecord {
                 id: r.id,
                 website: r.website,
