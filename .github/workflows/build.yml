@@ -53,14 +53,64 @@ jobs:
       - name: Pin rmp dependency
         run: cargo update -p rmp --precise 0.8.11 || true
 
-      - name: Generate High-Resolution App Icons
+      - name: Generate Cultural Vietnamese App Icons (Chim Lạc & Trống Đồng)
         run: |
           mkdir -p src-tauri/icons
           cat << 'EOF' > src-tauri/icons/app-icon.svg
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-            <rect width="512" height="512" rx="100" fill="#14161b"/>
-            <path d="M256 64 L384 128 V256 C384 340 328 416 256 448 C184 416 128 340 128 256 V128 Z" fill="#38bdf8"/>
-            <path d="M256 120 L344 164 V256 C344 316 304 372 256 398 C208 372 168 316 168 256 V164 Z" fill="#14161b"/>
+            <defs>
+              <radialGradient id="bgGlow" cx="50%" cy="45%" r="65%">
+                <stop offset="0%" stop-color="#1E293B"/>
+                <stop offset="100%" stop-color="#090D16"/>
+              </radialGradient>
+              <linearGradient id="caramBronze" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FDE68A"/>
+                <stop offset="40%" stop-color="#F59E0B"/>
+                <stop offset="80%" stop-color="#D97706"/>
+                <stop offset="100%" stop-color="#92400E"/>
+              </linearGradient>
+              <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24"/>
+                <stop offset="50%" stop-color="#D97706"/>
+                <stop offset="100%" stop-color="#38BDF8"/>
+              </linearGradient>
+              <linearGradient id="cyberWing" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#F59E0B"/>
+                <stop offset="60%" stop-color="#FB923C"/>
+                <stop offset="100%" stop-color="#38BDF8"/>
+              </linearGradient>
+              <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="12" result="blur"/>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+              </filter>
+            </defs>
+            <rect width="512" height="512" rx="116" fill="url(#bgGlow)"/>
+            <rect width="504" height="504" x="4" y="4" rx="112" fill="none" stroke="url(#shieldBorder)" stroke-width="3" opacity="0.4"/>
+            <g transform="translate(0, 10)">
+              <path d="M256 64 L396 112 V248 C396 342 334 416 256 448 C178 416 116 342 116 248 V112 Z" 
+                    fill="#111827" stroke="url(#shieldBorder)" stroke-width="8" stroke-linejoin="round" filter="url(#neonGlow)"/>
+              <path d="M256 86 L376 128 V246 C376 324 324 388 256 418 C188 388 136 324 136 246 V128 Z" 
+                    fill="#0B0F19" stroke="url(#caramBronze)" stroke-width="2" opacity="0.8"/>
+              <g opacity="0.35" transform="translate(256, 252)">
+                <circle r="92" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="6,4"/>
+                <circle r="72" fill="none" stroke="url(#caramBronze)" stroke-width="1.5"/>
+                <circle r="48" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="3,3"/>
+                <polygon points="0,-68 7,-24 0,-14 -7,-24" fill="url(#caramBronze)"/>
+                <polygon points="0,68 7,24 0,14 -7,24" fill="url(#caramBronze)"/>
+                <polygon points="-68,0 -24,7 -14,0 -24,-7" fill="url(#caramBronze)"/>
+                <polygon points="68,0 24,7 14,0 24,-7" fill="url(#caramBronze)"/>
+                <polygon points="-48,-48 -14,-22 -7,-7 -22,-14" fill="url(#caramBronze)"/>
+                <polygon points="48,-48 14,-22 7,-7 22,-14" fill="url(#caramBronze)"/>
+                <polygon points="-48,48 -14,22 -7,7 -22,14" fill="url(#caramBronze)"/>
+                <polygon points="48,48 14,22 7,7 22,14" fill="url(#caramBronze)"/>
+                <circle r="14" fill="url(#caramBronze)"/>
+              </g>
+              <path d="M 235 275 Q 170 200 130 155 Q 185 180 230 220 Q 180 150 145 110 Q 215 140 260 190 Q 230 110 200 80 Q 280 130 290 200 Z" fill="url(#cyberWing)" opacity="0.95"/>
+              <path d="M 195 340 C 215 320, 245 285, 260 250 C 275 215, 290 170, 320 142 C 338 126, 362 118, 388 114 C 362 126, 345 142, 335 158 C 320 182, 312 210, 305 240 C 290 290, 255 338, 218 360 Z" fill="url(#caramBronze)"/>
+              <path d="M 218 360 Q 260 355 295 385 Q 255 372 205 352 Z" fill="#F59E0B" opacity="0.8"/>
+              <polygon points="388,114 348,138 335,130" fill="#FDE68A"/>
+              <circle cx="340" cy="142" r="3.5" fill="#38BDF8" filter="url(#neonGlow)"/>
+            </g>
           </svg>
           EOF
           cargo tauri icon src-tauri/icons/app-icon.svg
