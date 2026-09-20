@@ -1,6 +1,6 @@
 use crate::database::DbManager;
 use shared::DownloadProgressPayload;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
@@ -11,6 +11,20 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 pub struct DownloadEngine;
 
 impl DownloadEngine {
+    /// Lọc bỏ các ký tự nguy hiểm tránh Directory Traversal
+    fn sanitize_filename(name: &str) -> String {
+        let clean = name
+            .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
+            .trim_matches(['.', ' '])
+            .to_string();
+
+        if clean.is_empty() {
+            format!("download_{}.bin", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis())
+        } else {
+            clean
+        }
+    }
+
     pub async fn start_download(
         app: AppHandle,
         url: String,
@@ -40,7 +54,7 @@ impl DownloadEngine {
             .map(|v| v.to_lowercase().contains("bytes"))
             .unwrap_or(false);
 
-        let final_filename = custom_name.unwrap_or_else(|| {
+        let raw_filename = custom_name.unwrap_or_else(|| {
             head_resp
                 .url()
                 .path_segments()
@@ -50,9 +64,16 @@ impl DownloadEngine {
                 .to_string()
         });
 
+        let final_filename = Self::sanitize_filename(&raw_filename);
         let target_path = save_dir.join(&final_filename);
-        let active_connections = if supports_ranges && total_size > 1_048_576 { connections.clamp(2, 16) } else { 1 };
 
+        // Đảm bảo đường dẫn nằm trong save_dir
+        let canonical_dir = tokio::fs::canonicalize(&save_dir).await.map_err(|e| e.to_string())?;
+        if !target_path.starts_with(&canonical_dir) && !target_path.starts_with(&save_dir) {
+            return Err("Invalid download target path".into());
+        }
+
+        let active_connections = if supports_ranges && total_size > 1_048_576 { connections.clamp(2, 16) } else { 1 };
         let progress_downloaded = Arc::new(AtomicU64::new(0));
         let cancel_flag = Arc::new(AtomicBool::new(false));
 
@@ -149,7 +170,7 @@ impl DownloadEngine {
                 last_time = Instant::now();
 
                 let percent = if total_size > 0 {
-                    (current_bytes as f32 / total_size as f32) * 100.0
+                    ((current_bytes as f64 / total_size as f64) * 100.0) as f32
                 } else {
                     0.0
                 };
