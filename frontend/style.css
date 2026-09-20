@@ -1,4 +1,244 @@
-/* Nút Autofill 1 chạm */
+:root {
+  --bg-primary: #12151b;
+  --bg-secondary: #1a1e27;
+  --bg-tertiary: #252b37;
+  --bg-hover: rgba(255, 255, 255, 0.07);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent: #38bdf8;
+  --accent-hover: #0ea5e9;
+  --accent-shield: #10b981;
+  --danger: #ef4444;
+  --border: #2e3646;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e2e8f0;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-shield: #059669;
+  --danger: #dc2626;
+  --border: #cbd5e1;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-main);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.browser-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-primary);
+}
+
+/* 1. TAB STRIP */
+.tabs-strip {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 10px;
+  gap: 6px;
+}
+
+.tabs-list {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow-x: auto;
+  gap: 4px;
+}
+.tabs-list::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  max-width: 200px;
+  min-width: 120px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.tab-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tab-chip.active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border);
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.tab-chip span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+}
+.btn-tab-close:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+}
+
+.tab-chip.snoozed {
+  opacity: 0.65;
+  border-style: dashed;
+}
+.btn-tab-snooze {
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.btn-tab-snooze:hover {
+  opacity: 1;
+  background: var(--bg-hover);
+}
+
+/* 2. NAVIGATION TOOLBAR */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 12px;
+  gap: 8px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* OMNIBOX */
+.omnibox-box {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 36px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 10px;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.omnibox-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.lock-icon {
+  display: flex;
+  color: var(--accent-shield);
+}
+
+.omnibox-input {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font-main);
+  user-select: text;
+}
+.omnibox-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.shield-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-shield);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.shield-btn:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
 .autofill-btn {
   background: rgba(16, 185, 129, 0.15);
   border: 1px solid rgba(16, 185, 129, 0.35);
@@ -11,7 +251,6 @@
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
-  margin-right: 6px;
   transition: all 0.15s ease;
 }
 .autofill-btn:hover {
@@ -19,62 +258,309 @@
   transform: translateY(-1px);
 }
 
-/* Download Shelf Đa Luồng (IDM Style) */
-.download-shelf {
+/* 3. BOOKMARKS STRIP */
+.bookmarks-strip {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  gap: 12px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.bookmarks-strip::-webkit-scrollbar {
+  display: none;
+}
+.bookmark-item {
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+.bookmark-item:hover {
+  color: var(--accent);
+}
+
+/* 4. FLYOUTS & MENUS */
+.shield-flyout {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
+  top: 98px;
+  left: 360px;
   width: 320px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
-  z-index: 9999;
-  padding: 12px 16px;
-  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  z-index: 1000;
+}
+.flyout-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.shield-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+}
+.shield-site-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-primary);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.flyout-stat {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+.flyout-stat .num {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent-shield);
 }
 
+.hamburger-menu {
+  position: absolute;
+  top: 98px;
+  right: 12px;
+  width: 220px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 6px;
+  z-index: 1000;
+}
+.menu-item {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.15s ease;
+}
+.menu-item:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+.menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* 5. DOWNLOAD SHELF */
+.download-shelf {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 340px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  z-index: 9999;
+  animation: slide-up 0.25s ease-out;
+}
 @keyframes slide-up {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-
-/* Styling cho Tab Snoozed */
-.tab-chip.snoozed {
-  opacity: 0.65;
-  border-style: dashed;
-}
-
-.tab-chip.snoozed:hover {
-  opacity: 0.9;
-}
-
-.btn-tab-snooze {
-  padding: 1px 4px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 10px;
-  opacity: 0.6;
-  transition: all 0.15s ease;
-  margin-right: 2px;
-}
-
-.btn-tab-snooze:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.1);
-}
-
 .shelf-progress-bar {
   width: 100%;
   height: 6px;
   background: var(--bg-tertiary);
   border-radius: 3px;
   overflow: hidden;
+  margin: 6px 0;
 }
-
 .shelf-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #0284c7 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-shield) 100%);
   transition: width 0.2s ease;
+}
+
+/* 6. INTERNAL VIEWS (Settings, Vault, Bookmarks, History) */
+.viewport-body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.internal-view {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  background: var(--bg-primary);
+  user-select: text;
+}
+
+.panel-card {
+  width: 100%;
+  max-width: 860px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+.panel-card h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.grid-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.grid-form label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.grid-form input, .grid-form select {
+  height: 38px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0 12px;
+  outline: none;
+  font-size: 13px;
+}
+.grid-form input:focus, .grid-form select:focus {
+  border-color: var(--accent);
+}
+
+.btn-action {
+  height: 36px;
+  padding: 0 16px;
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-action:hover {
+  background: var(--accent-hover);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+.data-table th, .data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table th {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.data-table tr:hover td {
+  background: var(--bg-hover);
+}
+
+/* 7. NEW TAB DASHBOARD */
+.newtab-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin-top: 40px;
+}
+.newtab-clock {
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  margin-bottom: 4px;
+}
+.newtab-search-box {
+  display: flex;
+  width: 100%;
+  max-width: 600px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 0 16px;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 36px 0;
+  box-shadow: var(--shadow);
+}
+.newtab-search-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+.privacy-dash {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 36px;
+}
+.dash-box {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+}
+.dash-box .val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.dash-box .lbl {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.speed-dial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+.dial-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dial-item:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
 }
