@@ -55,6 +55,41 @@ pub struct PageNavigationState {
     pub is_loading: bool,
 }
 
+// Cấu trúc dữ liệu cho bộ Update
+#[derive(Serialize, serde::Deserialize, Clone, Debug)]
+pub struct UpdateInfo {
+    pub current_version: String,
+    pub latest_version: String,
+    pub has_update: bool,
+    pub release_notes: String,
+    pub download_url: String,
+    pub asset_name: String,
+    pub is_appimage: bool,
+}
+
+#[derive(serde::Deserialize)]
+struct GitHubAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+#[derive(serde::Deserialize)]
+struct GitHubRelease {
+    tag_name: String,
+    body: Option<String>,
+    assets: Vec<GitHubAsset>,
+}
+
+fn is_newer_version(latest: &str, current: &str) -> bool {
+    let parse_v = |v: &str| -> Vec<u32> {
+        v.trim_start_matches('v')
+            .split('.')
+            .filter_map(|s| s.parse::<u32>().ok())
+            .collect()
+    };
+    parse_v(latest) > parse_v(current)
+}
+
 pub fn de_amp_url(url_str: &str) -> String {
     if let Ok(u) = url::Url::parse(url_str) {
         if u.host_str() == Some("www.google.com") && u.path().starts_with("/amp/s/") {
@@ -137,6 +172,106 @@ pub async fn handle_window_resize(app: &AppHandle, phys_size: PhysicalSize<u32>)
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_app_version(app: AppHandle) -> String {
+    app.package_info().version.to_string()
+}
+
+#[tauri::command]
+pub async fn check_for_updates(app: AppHandle) -> Result<UpdateInfo, String> {
+    let current_version = app.package_info().version.to_string();
+    let is_appimage = std::env::var("APPIMAGE").is_ok();
+
+    let client = reqwest::Client::builder()
+        .user_agent("CaramBrowser-Updater")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client
+        .get("https://api.github.com/repos/LocShadowVN/CaramBrowser/releases/latest")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {}", resp.status()));
+    }
+
+    let release: GitHubRelease = resp.json().await.map_err(|e| e.to_string())?;
+    let latest_version = release.tag_name.trim_start_matches('v').to_string();
+    let has_update = is_newer_version(&latest_version, &current_version);
+
+    let target_ext = if is_appimage { ".AppImage" } else { ".deb" };
+    let matched_asset = release.assets.into_iter().find(|a| a.name.ends_with(target_ext));
+
+    let (download_url, asset_name) = match matched_asset {
+        Some(a) => (a.browser_download_url, a.name),
+        None => (String::new(), String::new()),
+    };
+
+    Ok(UpdateInfo {
+        current_version,
+        latest_version,
+        has_update,
+        release_notes: release.body.unwrap_or_default(),
+        download_url,
+        asset_name,
+        is_appimage,
+    })
+}
+
+#[tauri::command]
+pub async fn apply_update(
+    db: State<'_, DbManager>,
+    download_url: String,
+    asset_name: String,
+) -> Result<String, String> {
+    if download_url.is_empty() {
+        return Err("ERR_NO_URL".into());
+    }
+
+    let client = reqwest::Client::builder()
+        .user_agent("CaramBrowser-Updater")
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client.get(&download_url).send().await.map_err(|e| e.to_string())?;
+    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+
+    if let Ok(appimage_path) = std::env::var("APPIMAGE") {
+        let current_path = PathBuf::from(&appimage_path);
+        let temp_path = current_path.with_extension("new");
+
+        tokio::fs::write(&temp_path, &bytes).await.map_err(|e| e.to_string())?;
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&temp_path, std::fs::Permissions::from_mode(0o755));
+        }
+
+        std::fs::rename(&temp_path, &current_path).map_err(|e| e.to_string())?;
+        return Ok("SUCCESS_APPIMAGE".into());
+    }
+
+    let cfg = db.load_config();
+    let save_dir = PathBuf::from(&cfg.download_path);
+    let target_file = save_dir.join(&asset_name);
+
+    tokio::fs::write(&target_file, &bytes).await.map_err(|e| e.to_string())?;
+    Ok(format!("SUCCESS_DEB:{}", target_file.display()))
+}
+
+#[tauri::command]
+pub fn restart_browser(app: AppHandle) {
+    if let Ok(appimage_path) = std::env::var("APPIMAGE") {
+        let _ = Command::new(appimage_path).spawn();
+    }
+    app.exit(0);
 }
 
 #[tauri::command]
@@ -246,7 +381,6 @@ pub async fn webview_reload(app: AppHandle, vp: State<'_, ViewportManager>, hard
     Ok(())
 }
 
-/// Tìm kiếm trong trang an toàn (Find in page - Ctrl + F)
 #[tauri::command]
 pub async fn find_in_page(
     app: AppHandle,
@@ -271,7 +405,6 @@ pub async fn find_in_page(
     Ok(true)
 }
 
-/// Xoá sạch Cookie và Bộ nhớ đệm của tên miền hiện tại
 #[tauri::command]
 pub async fn clear_site_data(
     app: AppHandle,
@@ -297,7 +430,6 @@ pub async fn clear_site_data(
     Ok(())
 }
 
-/// Báo cáo tiêu đề tài liệu từ Webview con về giao diện chính
 #[tauri::command]
 pub fn report_tab_title(app: AppHandle, tab_id: String, title: String, url: String) {
     let _ = app.emit("tab-navigation-state", PageNavigationState {
@@ -364,7 +496,6 @@ pub async fn open_native_tab(
             crate::bridge::get_webbridge_script().to_string()
         };
 
-        // Inject script đồng bộ tiêu đề và phím tắt từ trang web con về UI
         let init_script = format!(
             r#"
             {}
@@ -400,7 +531,6 @@ pub async fn open_native_tab(
         let wv_builder = WebviewBuilder::new(&tab_id, WebviewUrl::External(parsed_url))
             .user_agent(crate::bridge::CHROME_USER_AGENT)
             .initialization_script(&init_script)
-            // 1. Đồng bộ trạng thái tải trang (Loading bar)
             .on_page_load(move |_wv, payload| {
                 let current_url = payload.url().to_string();
                 let is_loading = payload.event() == PageLoadEvent::Started;
@@ -411,7 +541,6 @@ pub async fn open_native_tab(
                     is_loading,
                 });
             })
-            // 2. Download Sniffer: Bắt link tự động chuyển sang luồng tải đa luồng IDM
             .on_download(move |_wv, event| {
                 match event {
                     DownloadEvent::Requested { url, .. } => {
@@ -423,7 +552,7 @@ pub async fn open_native_tab(
                             let s_dir = PathBuf::from(&cfg.download_path);
                             let _ = DownloadEngine::start_download(app_c, dl_url, s_dir, None, 8).await;
                         });
-                        false // Huỷ trình tải đơn luồng chậm của WebKit
+                        false
                     }
                     _ => true,
                 }
@@ -434,7 +563,6 @@ pub async fn open_native_tab(
         let _ = wv.set_focus();
     }
 
-    // Nếu là tab ẩn danh: Tuyệt đối KHÔNG lưu lịch sử
     if !incognito {
         let _ = db.insert_history(&clean_url, &clean_url);
     }
