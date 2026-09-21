@@ -1,6 +1,6 @@
 use crate::database::DbManager;
 use shared::DownloadProgressPayload;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
@@ -67,7 +67,7 @@ impl DownloadEngine {
         let final_filename = Self::sanitize_filename(&raw_filename);
         let target_path = save_dir.join(&final_filename);
 
-        // Đảm bảo đường dẫn nằm trong save_dir
+        // Đảm bảo an toàn đường dẫn nằm trọn trong thư mục download
         let canonical_dir = tokio::fs::canonicalize(&save_dir).await.map_err(|e| e.to_string())?;
         if !target_path.starts_with(&canonical_dir) && !target_path.starts_with(&save_dir) {
             return Err("Invalid download target path".into());
