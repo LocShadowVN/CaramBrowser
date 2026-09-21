@@ -4,7 +4,7 @@ mod views;
 
 use icons::*;
 use leptos::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use shared::{AppConfig, BookmarkRecord, DownloadProgressPayload, SiteCredential};
 use tauri_ipc::call_tauri;
 use views::{
@@ -28,6 +28,7 @@ struct ResolveArgs {
 struct OpenNativeTabArgs {
     tab_id: String,
     url: String,
+    is_incognito: bool,
 }
 
 #[derive(Serialize)]
@@ -80,6 +81,25 @@ struct ExecuteAutofillArgs {
     secret: String,
 }
 
+#[derive(Serialize)]
+struct FindArgs {
+    query: String,
+    forward: bool,
+}
+
+#[derive(Serialize)]
+struct ReloadArgs {
+    hard: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct PageNavigationState {
+    pub tab_id: String,
+    pub url: String,
+    pub title: Option<String>,
+    pub is_loading: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PageMode {
     Web,
@@ -102,6 +122,8 @@ pub struct BrowserTab {
     pub history_index: usize,
     pub page_mode: PageMode,
     pub is_snoozed: bool,
+    pub is_incognito: bool,
+    pub is_loading: bool,
     pub last_active: f64,
 }
 
@@ -130,6 +152,8 @@ fn App() -> impl IntoView {
         history_index: 0,
         page_mode: PageMode::NewTab,
         is_snoozed: false,
+        is_incognito: false,
+        is_loading: false,
         last_active: js_sys::Date::now(),
     }]);
 
@@ -137,6 +161,9 @@ fn App() -> impl IntoView {
     let (omnibox_text, set_omnibox_text) = create_signal(String::new());
     let (shield_open, set_shield_open) = create_signal(false);
     let (menu_open, set_menu_open) = create_signal(false);
+    let (find_open, set_find_open) = create_signal(false);
+    let (find_query, set_find_query) = create_signal(String::new());
+
     let (bookmarks, set_bookmarks) = create_signal(Vec::<BookmarkRecord>::new());
     let (current_site_shield, set_current_site_shield) = create_signal(true);
     let (available_credentials, set_available_credentials) = create_signal(Vec::<SiteCredential>::new());
@@ -169,7 +196,7 @@ fn App() -> impl IntoView {
         });
     });
 
-    // Lắng nghe sự kiện tiến trình tải đa luồng IDM
+    // 1. ĐỒNG BỘ TIẾN TRÌNH TẢI IDM
     spawn_local(async move {
         let cb = Closure::wrap(Box::new(move |event_obj: JsValue| {
             if let Ok(payload_val) = js_sys::Reflect::get(&event_obj, &JsValue::from_str("payload")) {
@@ -182,7 +209,37 @@ fn App() -> impl IntoView {
         cb.forget();
     });
 
-    // SMART TAB SNOOZER: Ru ngủ tab nền sau 10 phút để giải phóng RAM
+    // 2. ĐỒNG BỘ HAI CHIỀU (URL, TIÊU ĐỀ, TRẠNG THÁI LOADING BAR TỪ WEBKIT)
+    spawn_local(async move {
+        let cb = Closure::wrap(Box::new(move |event_obj: JsValue| {
+            if let Ok(payload_val) = js_sys::Reflect::get(&event_obj, &JsValue::from_str("payload")) {
+                if let Ok(state) = serde_wasm_bindgen::from_value::<PageNavigationState>(payload_val) {
+                    let mut list = tabs.get();
+                    if let Some(tab) = list.iter_mut().find(|t| t.id == state.tab_id) {
+                        tab.is_loading = state.is_loading;
+                        if !state.url.is_empty() {
+                            tab.url = state.url.clone();
+                        }
+                        if let Some(t) = state.title {
+                            if !t.is_empty() {
+                                tab.title = t;
+                            }
+                        }
+                    }
+                    set_tabs.set(list);
+
+                    // Cập nhật thanh omnibox nếu tab đó đang là tab active
+                    if active_tab_id.get() == state.tab_id && !state.url.starts_with("caram://") {
+                        set_omnibox_text.set(state.url);
+                    }
+                }
+            }
+        }) as Box<dyn FnMut(JsValue)>);
+        let _ = tauri_ipc::listen("tab-navigation-state", cb.as_ref().unchecked_ref()).await;
+        cb.forget();
+    });
+
+    // 3. SMART TAB SNOOZER (Ru ngủ tab sau 10 phút)
     spawn_local(async move {
         loop {
             let promise = js_sys::Promise::new(&mut |resolve, _| {
@@ -237,6 +294,7 @@ fn App() -> impl IntoView {
         spawn_local(async move {
             set_menu_open.set(false);
             set_shield_open.set(false);
+            set_find_open.set(false);
 
             let cur_id = active_tab_id.get();
             let mut list = tabs.get();
@@ -247,13 +305,14 @@ fn App() -> impl IntoView {
             let tab = tab_opt.unwrap();
             tab.last_active = js_sys::Date::now();
             tab.is_snoozed = false;
+            let incognito = tab.is_incognito;
 
             let target = target_url.trim().to_string();
 
             let is_internal_route = match target.as_str() {
                 "caram://newtab" => {
                     tab.url = target.clone();
-                    tab.title = "New Tab".into();
+                    tab.title = if incognito { "Incognito Tab".into() } else { "New Tab".into() };
                     tab.page_mode = PageMode::NewTab;
                     true
                 }
@@ -297,7 +356,7 @@ fn App() -> impl IntoView {
             };
 
             if is_internal_route {
-                if record_history {
+                if record_history && !incognito {
                     tab.history.truncate(tab.history_index + 1);
                     tab.history.push(target.clone());
                     tab.history_index = tab.history.len() - 1;
@@ -321,7 +380,9 @@ fn App() -> impl IntoView {
             tab.url = resolved.clone();
             tab.title = resolved.clone();
             tab.page_mode = PageMode::Web;
-            if record_history {
+            tab.is_loading = true;
+
+            if record_history && !incognito {
                 tab.history.truncate(tab.history_index + 1);
                 tab.history.push(resolved.clone());
                 tab.history_index = tab.history.len() - 1;
@@ -333,8 +394,144 @@ fn App() -> impl IntoView {
             let _ = call_tauri::<_, ()>("open_native_tab", &OpenNativeTabArgs {
                 tab_id: cur_id,
                 url: resolved,
+                is_incognito: incognito,
             }).await;
         });
+    };
+
+    let create_new_tab = move |incognito: bool| {
+        let mut list = tabs.get();
+        let next_counter = tab_counter.get() + 1;
+        set_tab_counter.set(next_counter);
+        let new_id = format!("tab_{}", next_counter);
+        list.push(BrowserTab {
+            id: new_id.clone(),
+            url: "caram://newtab".into(),
+            title: if incognito { "Incognito Tab".into() } else { "New Tab".into() },
+            blocked_count: 0,
+            history: vec!["caram://newtab".into()],
+            history_index: 0,
+            page_mode: PageMode::NewTab,
+            is_snoozed: false,
+            is_incognito: incognito,
+            is_loading: false,
+            last_active: js_sys::Date::now(),
+        });
+        set_tabs.set(list);
+        set_active_tab_id.set(new_id.clone());
+        set_omnibox_text.set(String::new());
+
+        let all_ids: Vec<String> = tabs.get().iter().map(|t| t.id.clone()).collect();
+        spawn_local(async move {
+            let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
+                active_tab_id: new_id,
+                is_internal: true,
+                all_tab_ids: all_ids,
+            }).await;
+        });
+    };
+
+    // 4. HỆ THỐNG BẮT PHÍM TẮT TOÀN CỤC (Shortcuts Engine)
+    {
+        let window = web_sys::window().unwrap();
+        let key_closure = Closure::wrap(Box::new(move |e: web_sys::KeyboardEvent| {
+            let ctrl = e.ctrl_key() || e.meta_key();
+            let key = e.key();
+
+            if ctrl {
+                match key.to_lowercase().as_str() {
+                    "t" => {
+                        e.prevent_default();
+                        create_new_tab(e.shift_key()); // Ctrl+Shift+T mở tab ẩn danh
+                    }
+                    "w" => {
+                        e.prevent_default();
+                        let cur_id = active_tab_id.get();
+                        let mut t_list = tabs.get();
+                        if t_list.len() > 1 {
+                            let del_index = t_list.iter().position(|x| x.id == cur_id);
+                            t_list.retain(|x| x.id != cur_id);
+                            let next_idx = del_index.unwrap_or(1).saturating_sub(1);
+                            let next_tab = &t_list[next_idx];
+                            set_active_tab_id.set(next_tab.id.clone());
+                            set_omnibox_text.set(if next_tab.url == "caram://newtab" { String::new() } else { next_tab.url.clone() });
+                            set_tabs.set(t_list);
+                            spawn_local(async move {
+                                let _ = call_tauri::<_, ()>("close_native_tab", &CloseNativeTabArgs { tab_id: cur_id }).await;
+                            });
+                        }
+                    }
+                    "l" => {
+                        e.prevent_default();
+                        if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+                            if let Some(input) = doc.query_selector(".omnibox-input").ok().flatten() {
+                                if let Ok(el) = input.dyn_into::<web_sys::HtmlInputElement>() {
+                                    let _ = el.focus();
+                                    el.select();
+                                }
+                            }
+                        }
+                    }
+                    "r" => {
+                        e.prevent_default();
+                        let hard = e.shift_key();
+                        spawn_local(async move {
+                            let _ = call_tauri::<_, ()>("webview_reload", &ReloadArgs { hard }).await;
+                        });
+                    }
+                    "f" => {
+                        e.prevent_default();
+                        set_find_open.set(!find_open.get());
+                    }
+                    "h" => {
+                        e.prevent_default();
+                        navigate("caram://history".into(), true);
+                    }
+                    "j" => {
+                        e.prevent_default();
+                        navigate("caram://downloads".into(), true);
+                    }
+                    "tab" => {
+                        e.prevent_default();
+                        let cur_id = active_tab_id.get();
+                        let list = tabs.get();
+                        if let Some(idx) = list.iter().position(|t| t.id == cur_id) {
+                            let next_idx = if e.shift_key() {
+                                if idx == 0 { list.len() - 1 } else { idx - 1 }
+                            } else {
+                                (idx + 1) % list.len()
+                            };
+                            let target_tab = &list[next_idx];
+                            let next_id = target_tab.id.clone();
+                            set_active_tab_id.set(next_id.clone());
+                            set_omnibox_text.set(if target_tab.url == "caram://newtab" { String::new() } else { target_tab.url.clone() });
+                        }
+                    }
+                    _ => {}
+                }
+            } else if key == "F5" {
+                e.prevent_default();
+                spawn_local(async move {
+                    let _ = call_tauri::<_, ()>("webview_reload", &ReloadArgs { hard: false }).await;
+                });
+            } else if key == "Escape" {
+                set_find_open.set(false);
+                set_shield_open.set(false);
+                set_menu_open.set(false);
+            }
+        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+
+        let _ = window.add_event_listener_with_callback("keydown", key_closure.as_ref().unchecked_ref());
+        key_closure.forget();
+    }
+
+    let do_find = move |forward: bool| {
+        let q = find_query.get();
+        if !q.trim().is_empty() {
+            spawn_local(async move {
+                let _ = call_tauri::<_, bool>("find_in_page", &FindArgs { query: q, forward }).await;
+            });
+        }
     };
 
     view! {
@@ -347,9 +544,10 @@ fn App() -> impl IntoView {
                         let id_snooze = tab.id.clone();
                         let active = tab.id == active_tab_id.get();
                         let snoozed = tab.is_snoozed;
+                        let incognito = tab.is_incognito;
                         view! {
                             <div
-                                class=format!("tab-chip {} {}", if active { "active" } else { "" }, if snoozed { "snoozed" } else { "" })
+                                class=format!("tab-chip {} {} {}", if active { "active" } else { "" }, if snoozed { "snoozed" } else { "" }, if incognito { "incognito" } else { "" })
                                 on:click=move |_| {
                                     let id_c = id.clone();
                                     set_active_tab_id.set(id_c.clone());
@@ -357,6 +555,7 @@ fn App() -> impl IntoView {
                                     let is_int = list.iter().find(|t| t.id == id_c).map(|t| t.url.starts_with("caram://")).unwrap_or(true);
                                     let cur_url = list.iter().find(|t| t.id == id_c).map(|t| t.url.clone()).unwrap_or_default();
                                     let was_snoozed = list.iter().find(|t| t.id == id_c).map(|t| t.is_snoozed).unwrap_or(false);
+                                    let is_inc = list.iter().find(|t| t.id == id_c).map(|t| t.is_incognito).unwrap_or(false);
 
                                     if let Some(t) = list.iter_mut().find(|t| t.id == id_c) {
                                         t.last_active = js_sys::Date::now();
@@ -373,6 +572,7 @@ fn App() -> impl IntoView {
                                             let _ = call_tauri::<_, ()>("open_native_tab", &OpenNativeTabArgs {
                                                 tab_id: id_c.clone(),
                                                 url: cur_url,
+                                                is_incognito: is_inc,
                                             }).await;
                                         }
                                         let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
@@ -383,6 +583,11 @@ fn App() -> impl IntoView {
                                     });
                                 }
                             >
+                                {if incognito {
+                                    view! { <span style="margin-right:3px;">"🕶️"</span> }.into_view()
+                                } else {
+                                    view! { <span style="display:none;"></span> }.into_view()
+                                }}
                                 <span>{tab.title}</span>
 
                                 {if !active && !snoozed && !tab.url.starts_with("caram://") {
@@ -435,35 +640,8 @@ fn App() -> impl IntoView {
                         }
                     }).collect_view()}
                 </div>
-                <button class="icon-btn" on:click=move |_| {
-                    let mut list = tabs.get();
-                    let next_counter = tab_counter.get() + 1;
-                    set_tab_counter.set(next_counter);
-                    let new_id = format!("tab_{}", next_counter);
-                    list.push(BrowserTab {
-                        id: new_id.clone(),
-                        url: "caram://newtab".into(),
-                        title: "New Tab".into(),
-                        blocked_count: 0,
-                        history: vec!["caram://newtab".into()],
-                        history_index: 0,
-                        page_mode: PageMode::NewTab,
-                        is_snoozed: false,
-                        last_active: js_sys::Date::now(),
-                    });
-                    set_tabs.set(list);
-                    set_active_tab_id.set(new_id.clone());
-                    set_omnibox_text.set(String::new());
 
-                    let all_ids: Vec<String> = tabs.get().iter().map(|t| t.id.clone()).collect();
-                    spawn_local(async move {
-                        let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
-                            active_tab_id: new_id,
-                            is_internal: true,
-                            all_tab_ids: all_ids,
-                        }).await;
-                    });
-                }>
+                <button class="icon-btn" title="New Tab (Ctrl+T)" on:click=move |_| create_new_tab(false)>
                     <IconPlus />
                 </button>
             </header>
@@ -513,14 +691,14 @@ fn App() -> impl IntoView {
 
                 <button
                     class="icon-btn"
-                    title="Reload"
+                    title="Reload (Ctrl+R, Shift+R for Hard Reload)"
                     on:click=move |_| {
                         let cur = active_tab_id.get();
                         let list = tabs.get();
                         if let Some(tab) = list.into_iter().find(|t| t.id == cur) {
                             if tab.page_mode == PageMode::Web {
                                 spawn_local(async move {
-                                    let _ = call_tauri::<_, ()>("webview_reload", &EmptyArgs {}).await;
+                                    let _ = call_tauri::<_, ()>("webview_reload", &ReloadArgs { hard: false }).await;
                                 });
                             } else {
                                 navigate(tab.url, false);
@@ -534,7 +712,7 @@ fn App() -> impl IntoView {
                     <input
                         type="text"
                         class="omnibox-input"
-                        placeholder="Search web or enter address (Auto-Cleaned & De-AMP)"
+                        placeholder="Search web or enter address (Ctrl+L to focus)"
                         prop:value=omnibox_text
                         on:input=move |ev| set_omnibox_text.set(event_target_value(&ev))
                         on:keydown=move |ev: web_sys::KeyboardEvent| {
@@ -593,8 +771,9 @@ fn App() -> impl IntoView {
                     }><IconBookmark /></button>
                 </div>
 
+                <button class="icon-btn" on:click=move |_| set_find_open.set(!find_open.get()) title="Find in Page (Ctrl+F)"><span style="font-weight:700; font-size:12px;">"🔍"</span></button>
                 <button class="icon-btn" on:click=move |_| navigate("caram://extensions".into(), true) title="Extensions"><IconExtension /></button>
-                <button class="icon-btn" on:click=move |_| navigate("caram://downloads".into(), true) title="Downloads"><IconDownload /></button>
+                <button class="icon-btn" on:click=move |_| navigate("caram://downloads".into(), true) title="Downloads (Ctrl+J)"><IconDownload /></button>
                 <button class="icon-btn" on:click=move |_| navigate("caram://passwords".into(), true) title="Password Vault"><IconKey /></button>
                 <button class="icon-btn" on:click=move |_| set_menu_open.set(!menu_open.get()) title="Settings & Menu"><IconMenu /></button>
             </div>
@@ -610,7 +789,31 @@ fn App() -> impl IntoView {
                 }).collect_view()}
             </div>
 
-            // Shield Flyout Controller
+            // HỘP THOẠI TÌM KIẾM TRONG TRANG (FIND IN PAGE - CTRL + F)
+            {move || if find_open.get() {
+                view! {
+                    <div class="find-bar">
+                        <input
+                            type="text"
+                            placeholder="Find in page..."
+                            prop:value=find_query
+                            on:input=move |ev| set_find_query.set(event_target_value(&ev))
+                            on:keydown=move |ev: web_sys::KeyboardEvent| {
+                                if ev.key() == "Enter" {
+                                    do_find(!ev.shift_key());
+                                }
+                            }
+                        />
+                        <button class="icon-btn" title="Previous" on:click=move |_| do_find(false)>"▲"</button>
+                        <button class="icon-btn" title="Next" on:click=move |_| do_find(true)>"▼"</button>
+                        <button class="icon-btn" title="Close" on:click=move |_| set_find_open.set(false)><IconClose /></button>
+                    </div>
+                }
+            } else {
+                view! { <div style="display:none;"></div> }
+            }}
+
+            // SHIELD CONTROLLER FLYOUT
             {move || if shield_open.get() {
                 let cur_url = omnibox_text.get();
                 let domain = extract_domain(&cur_url);
@@ -655,9 +858,19 @@ fn App() -> impl IntoView {
                             }}</div>
                             <span style="font-size:11px; color:var(--text-secondary)">"Trackers, Ads & Cookies Neutralized"</span>
                         </div>
-                        <div style="font-size:11px; color:var(--text-secondary); text-align:center; margin-top:8px;">
-                            "WebRTC Leak Shield Active | Farbling ON"
-                        </div>
+
+                        // Nút xoá sạch Cookie của trang này
+                        <button
+                            class="btn-action"
+                            style="margin-top:12px; width:100%; background:var(--bg-tertiary); font-size:11px;"
+                            on:click=move |_| {
+                                spawn_local(async move {
+                                    let _ = call_tauri::<_, ()>("clear_site_data", &EmptyArgs {}).await;
+                                });
+                            }
+                        >
+                            "Clear Cookies & Cache for this site"
+                        </button>
                     </div>
                 }
             } else {
@@ -667,9 +880,11 @@ fn App() -> impl IntoView {
             {move || if menu_open.get() {
                 view! {
                     <div class="hamburger-menu">
-                        <div class="menu-item" on:click=move |_| navigate("caram://newtab".into(), true)>"New Tab"</div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://history".into(), true)>"History"</div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://downloads".into(), true)>"Downloads"</div>
+                        <div class="menu-item" on:click=move |_| create_new_tab(false)>"New Tab (Ctrl+T)"</div>
+                        <div class="menu-item" on:click=move |_| create_new_tab(true)>"New Incognito Tab (Ctrl+Shift+T)"</div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://history".into(), true)>"History (Ctrl+H)"</div>
+                        <div class="menu-item" on:click=move |_| navigate("caram://downloads".into(), true)>"Downloads (Ctrl+J)"</div>
                         <div class="menu-item" on:click=move |_| navigate("caram://bookmarks".into(), true)>"Bookmarks"</div>
                         <div class="menu-item" on:click=move |_| navigate("caram://extensions".into(), true)>"Extensions"</div>
                         <div class="menu-divider"></div>
@@ -687,7 +902,7 @@ fn App() -> impl IntoView {
                 view! { <div style="display:none;"></div> }
             }}
 
-            // Thanh Download Shelf đa luồng IDM góc dưới
+            // DOWNLOAD SHELF ĐA LUỒNG IDM
             {move || active_download.get().map(|prog| {
                 view! {
                     <div class="download-shelf">
@@ -716,6 +931,17 @@ fn App() -> impl IntoView {
             })}
 
             <main class="viewport-body">
+                // THANH TIẾN TRÌNH TẢI TRANG (PAGE LOADING PROGRESS BAR)
+                {move || {
+                    let cur_id = active_tab_id.get();
+                    let is_loading = tabs.get().into_iter().find(|t| t.id == cur_id).map(|t| t.is_loading).unwrap_or(false);
+                    if is_loading {
+                        view! { <div class="page-loading-bar"></div> }.into_view()
+                    } else {
+                        view! { <div style="display:none;"></div> }.into_view()
+                    }
+                }}
+
                 {move || {
                     let cur_id = active_tab_id.get();
                     let current_tab = tabs.get().into_iter().find(|t| t.id == cur_id);
