@@ -113,7 +113,8 @@ jobs:
             </g>
           </svg>
           EOF
-          cargo tauri icon src-tauri/icons/app-icon.svg
+          cargo tauri icon src-tauri/icons/app-icon.svg -o src-tauri/icons
+          cp src-tauri/icons/icon.png src-tauri/icons/128x128.png || true
 
       - name: Build Full Caram Browser App
         run: |
