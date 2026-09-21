@@ -4,6 +4,7 @@ use crate::database::DbManager;
 use crate::dns::DnsResolver;
 use crate::downloader::DownloadEngine;
 use crate::extensions::ExtensionEngine;
+use serde::Serialize;
 use shared::{
     AppConfig, BookmarkRecord, DecryptedVaultRecord, DnsTestResult, DownloadRecord, ExtensionItem,
     HistoryRecord, PageContentResponse, ShieldLevel, ShieldStats, ShieldVerdict, SiteCredential,
@@ -12,8 +13,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 use tauri::{
-    webview::WebviewBuilder,
-    AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalSize, State, WebviewUrl,
+    webview::{DownloadEvent, PageLoadEvent, WebviewBuilder},
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalSize, State, WebviewUrl,
 };
 
 pub const NAV_BAR_HEIGHT: f64 = 92.0;
@@ -44,6 +45,14 @@ impl VaultSession {
             derived_key: Mutex::new(None),
         }
     }
+}
+
+#[derive(Clone, Serialize)]
+pub struct PageNavigationState {
+    pub tab_id: String,
+    pub url: String,
+    pub title: Option<String>,
+    pub is_loading: bool,
 }
 
 pub fn de_amp_url(url_str: &str) -> String {
@@ -178,7 +187,6 @@ pub fn check_vault_credentials_for_domain(
     Ok(matches)
 }
 
-/// Vá hoàn toàn lỗ hổng Injection bằng serde_json
 #[tauri::command]
 pub async fn execute_autofill(
     app: AppHandle,
@@ -207,7 +215,6 @@ pub async fn execute_autofill(
     Ok(())
 }
 
-// Điều hướng Native chuẩn xác của WebKit
 #[tauri::command]
 pub async fn webview_go_back(app: AppHandle, vp: State<'_, ViewportManager>) -> Result<(), String> {
     let active_id = vp.active_tab.lock().unwrap().clone();
@@ -227,12 +234,78 @@ pub async fn webview_go_forward(app: AppHandle, vp: State<'_, ViewportManager>) 
 }
 
 #[tauri::command]
-pub async fn webview_reload(app: AppHandle, vp: State<'_, ViewportManager>) -> Result<(), String> {
+pub async fn webview_reload(app: AppHandle, vp: State<'_, ViewportManager>, hard: bool) -> Result<(), String> {
     let active_id = vp.active_tab.lock().unwrap().clone();
     if let Some(wv) = app.get_webview(&active_id) {
-        wv.eval("window.location.reload()").map_err(|e| e.to_string())?;
+        if hard {
+            wv.eval("window.location.reload(true)").map_err(|e| e.to_string())?;
+        } else {
+            wv.eval("window.location.reload()").map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
+}
+
+/// Tìm kiếm trong trang an toàn (Find in page - Ctrl + F)
+#[tauri::command]
+pub async fn find_in_page(
+    app: AppHandle,
+    vp: State<'_, ViewportManager>,
+    query: String,
+    forward: bool,
+) -> Result<bool, String> {
+    let active_id = vp.active_tab.lock().unwrap().clone();
+    let Some(wv) = app.get_webview(&active_id) else {
+        return Ok(false);
+    };
+
+    let safe_query = serde_json::to_string(&query).map_err(|e| e.to_string())?;
+    let backwards = !forward;
+
+    let eval_script = format!(
+        r#"window.find({}, false, {}, true, false, true, false);"#,
+        safe_query, backwards
+    );
+
+    wv.eval(&eval_script).map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
+/// Xoá sạch Cookie và Bộ nhớ đệm của tên miền hiện tại
+#[tauri::command]
+pub async fn clear_site_data(
+    app: AppHandle,
+    vp: State<'_, ViewportManager>,
+) -> Result<(), String> {
+    let active_id = vp.active_tab.lock().unwrap().clone();
+    let Some(wv) = app.get_webview(&active_id) else {
+        return Err("No active webview".into());
+    };
+
+    let script = r#"
+        try {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.cookie.split(";").forEach(function(c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            window.location.reload();
+        } catch(e) {}
+    "#;
+
+    wv.eval(script).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Báo cáo tiêu đề tài liệu từ Webview con về giao diện chính
+#[tauri::command]
+pub fn report_tab_title(app: AppHandle, tab_id: String, title: String, url: String) {
+    let _ = app.emit("tab-navigation-state", PageNavigationState {
+        tab_id,
+        url,
+        title: Some(title),
+        is_loading: false,
+    });
 }
 
 #[tauri::command]
@@ -243,6 +316,7 @@ pub async fn open_native_tab(
     db: State<'_, DbManager>,
     tab_id: String,
     url: String,
+    is_incognito: Option<bool>,
 ) -> Result<(), String> {
     let window = app.get_window("main").ok_or("Main window not found")?;
     let scale = window.scale_factor().unwrap_or(1.0);
@@ -252,13 +326,13 @@ pub async fn open_native_tab(
     let clean_url = strip_tracking_parameters(&url);
     let parsed_url = url::Url::parse(&clean_url).map_err(|e| e.to_string())?;
 
-    // Ngăn chặn các scheme nguy hiểm như file:// hoặc javascript:
     if parsed_url.scheme() != "http" && parsed_url.scheme() != "https" {
         return Err("Blocked insecure URL protocol".into());
     }
 
     let domain = parsed_url.host_str().unwrap_or("").to_string();
     let shield_enabled = db.get_site_shield_status(&domain).unwrap_or(true);
+    let incognito = is_incognito.unwrap_or(false);
 
     {
         let mut act = vp.active_tab.lock().unwrap();
@@ -284,22 +358,87 @@ pub async fn open_native_tab(
         let _ = wv.set_focus();
         wv.navigate(parsed_url).map_err(|e| e.to_string())?;
     } else {
-        let init_script = if shield_enabled {
+        let base_script = if shield_enabled {
             shield.get_injected_script()
         } else {
             crate::bridge::get_webbridge_script().to_string()
         };
 
+        // Inject script đồng bộ tiêu đề và phím tắt từ trang web con về UI
+        let init_script = format!(
+            r#"
+            {}
+            (function() {{
+                const TAB_ID = "{}";
+                function reportTitle() {{
+                    if (window.__TAURI__ && window.__TAURI__.core) {{
+                        window.__TAURI__.core.invoke('report_tab_title', {{
+                            tabId: TAB_ID,
+                            title: document.title || window.location.hostname,
+                            url: window.location.href
+                        }}).catch(() => {{}});
+                    }}
+                }}
+                if (document.readyState === 'loading') {{
+                    document.addEventListener('DOMContentLoaded', reportTitle);
+                }} else {{
+                    reportTitle();
+                }}
+                window.addEventListener('load', reportTitle);
+                new MutationObserver(() => reportTitle()).observe(document.querySelector('title') || document.head, {{
+                    subtree: true, characterData: true, childList: true
+                }});
+            }})();
+            "#,
+            base_script, tab_id
+        );
+
+        let app_handle_for_events = app.clone();
+        let tab_id_for_events = tab_id.clone();
+        let app_handle_for_dl = app.clone();
+
         let wv_builder = WebviewBuilder::new(&tab_id, WebviewUrl::External(parsed_url))
             .user_agent(crate::bridge::CHROME_USER_AGENT)
-            .initialization_script(&init_script);
+            .initialization_script(&init_script)
+            // 1. Đồng bộ trạng thái tải trang (Loading bar)
+            .on_page_load(move |_wv, payload| {
+                let current_url = payload.url().to_string();
+                let is_loading = payload.event() == PageLoadEvent::Started;
+                let _ = app_handle_for_events.emit("tab-navigation-state", PageNavigationState {
+                    tab_id: tab_id_for_events.clone(),
+                    url: current_url,
+                    title: None,
+                    is_loading,
+                });
+            })
+            // 2. Download Sniffer: Bắt link tự động chuyển sang luồng tải đa luồng IDM
+            .on_download(move |_wv, event| {
+                match event {
+                    DownloadEvent::Requested { url, .. } => {
+                        let dl_url = url.to_string();
+                        let app_c = app_handle_for_dl.clone();
+                        tauri::async_runtime::spawn(async move {
+                            let db_c = app_c.state::<DbManager>();
+                            let cfg = db_c.load_config();
+                            let s_dir = PathBuf::from(&cfg.download_path);
+                            let _ = DownloadEngine::start_download(app_c, dl_url, s_dir, None, 8).await;
+                        });
+                        false // Huỷ trình tải đơn luồng chậm của WebKit
+                    }
+                    _ => true,
+                }
+            });
 
         let wv = window.add_child(wv_builder, content_pos, content_size)
             .map_err(|e| e.to_string())?;
         let _ = wv.set_focus();
     }
 
-    let _ = db.insert_history(&clean_url, &clean_url);
+    // Nếu là tab ẩn danh: Tuyệt đối KHÔNG lưu lịch sử
+    if !incognito {
+        let _ = db.insert_history(&clean_url, &clean_url);
+    }
+
     Ok(())
 }
 
@@ -568,7 +707,6 @@ pub fn remove_download(db: State<'_, DbManager>, id: i64) -> Result<(), String> 
     db.delete_download(id).map_err(|e| e.to_string())
 }
 
-/// Bảo vệ an toàn tuyệt đối khi mở thư mục tải về (Ngăn chặn RCE)
 #[tauri::command]
 pub fn open_file_manager(path: String) -> Result<(), String> {
     let p = Path::new(&path);
