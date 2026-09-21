@@ -89,3 +89,87 @@ jobs:
             <g transform="translate(0, 10)">
               <path d="M256 64 L396 112 V248 C396 342 334 416 256 448 C178 416 116 342 116 248 V112 Z" 
                     fill="#111827" stroke="url(#shieldBorder)" stroke-width="8" stroke-linejoin="round" filter="url(#neonGlow)"/>
+              <path d="M256 86 L376 128 V246 C376 324 324 388 256 418 C188 388 136 324 136 246 V128 Z" 
+                    fill="#0B0F19" stroke="url(#caramBronze)" stroke-width="2" opacity="0.8"/>
+              <g opacity="0.35" transform="translate(256, 252)">
+                <circle r="92" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="6,4"/>
+                <circle r="72" fill="none" stroke="url(#caramBronze)" stroke-width="1.5"/>
+                <circle r="48" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="3,3"/>
+                <polygon points="0,-68 7,-24 0,-14 -7,-24" fill="url(#caramBronze)"/>
+                <polygon points="0,68 7,24 0,14 -7,24" fill="url(#caramBronze)"/>
+                <polygon points="-68,0 -24,7 -14,0 -24,-7" fill="url(#caramBronze)"/>
+                <polygon points="68,0 24,7 14,0 24,-7" fill="url(#caramBronze)"/>
+                <polygon points="-48,-48 -14,-22 -7,-7 -22,-14" fill="url(#caramBronze)"/>
+                <polygon points="48,-48 14,-22 7,-7 22,-14" fill="url(#caramBronze)"/>
+                <polygon points="-48,48 -14,22 -7,7 -22,14" fill="url(#caramBronze)"/>
+                <polygon points="48,48 14,22 7,7 22,14" fill="url(#caramBronze)"/>
+                <circle r="14" fill="url(#caramBronze)"/>
+              </g>
+              <path d="M 235 275 Q 170 200 130 155 Q 185 180 230 220 Q 180 150 145 110 Q 215 140 260 190 Q 230 110 200 80 Q 280 130 290 200 Z" fill="url(#cyberWing)" opacity="0.95"/>
+              <path d="M 195 340 C 215 320, 245 285, 260 250 C 275 215, 290 170, 320 142 C 338 126, 362 118, 388 114 C 362 126, 345 142, 335 158 C 320 182, 312 210, 305 240 C 290 290, 255 338, 218 360 Z" fill="url(#caramBronze)"/>
+              <path d="M 218 360 Q 260 355 295 385 Q 255 372 205 352 Z" fill="#F59E0B" opacity="0.8"/>
+              <polygon points="388,114 348,138 335,130" fill="#FDE68A"/>
+              <circle cx="340" cy="142" r="3.5" fill="#38BDF8" filter="url(#neonGlow)"/>
+            </g>
+          </svg>
+          EOF
+          cargo tauri icon src-tauri/icons/app-icon.svg -o src-tauri/icons
+          cp src-tauri/icons/icon.png src-tauri/icons/128x128.png || true
+
+      # ĐƯA LÊN TRƯỚC BƯỚC BUILD ĐỂ GÓI ĐỦ 300K RULES
+      - name: Fetch and Bundle 300k+ Adblock & Cookie Rules
+        run: |
+          mkdir -p src-tauri/resources
+          curl -sL \
+            https://easylist.to/easylist/easylist.txt \
+            https://easylist.to/easylist/easyprivacy.txt \
+            https://secure.fanboy.co.nz/fanboy-annoyance.txt \
+            > src-tauri/resources/rules.txt
+          echo "Bundled $(wc -l < src-tauri/resources/rules.txt) rules into installer."
+
+      - name: Build Full Caram Browser App
+        run: |
+          cargo tauri build
+
+      # CHUẨN HOÁ TÊN FILE ĐÚNG 100% THEO README (KHÔNG CÓ DẤU CÁCH)
+      - name: Normalize & Prepare Release Binaries
+        run: |
+          mkdir -p release-artifacts
+          
+          # Đổi tên file .deb thành caram-browser_1.0.0_amd64.deb
+          DEB_FILE=$(find target/release/bundle/deb src-tauri/target/release/bundle/deb -name "*.deb" | head -n 1)
+          if [ -n "$DEB_FILE" ]; then
+            echo "Found deb: $DEB_FILE"
+            cp "$DEB_FILE" release-artifacts/caram-browser_1.0.0_amd64.deb
+          fi
+
+          # Đổi tên file .AppImage thành caram-browser_1.0.0_amd64.AppImage
+          APPIMAGE_FILE=$(find target/release/bundle/appimage src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -n 1)
+          if [ -n "$APPIMAGE_FILE" ]; then
+            echo "Found AppImage: $APPIMAGE_FILE"
+            cp "$APPIMAGE_FILE" release-artifacts/caram-browser_1.0.0_amd64.AppImage
+          fi
+
+          # Copy file binary thực thi
+          if [ -f "target/release/caram-browser" ]; then
+            cp "target/release/caram-browser" release-artifacts/caram-browser
+          elif [ -f "src-tauri/target/release/caram-browser" ]; then
+            cp "src-tauri/target/release/caram-browser" release-artifacts/caram-browser
+          fi
+
+          echo "=== Danh sách file đã chuẩn hóa đúng chuẩn README ==="
+          ls -la release-artifacts/
+
+      - name: Upload Artifacts for Manual Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Caram-Browser-Linux-Build
+          path: release-artifacts/*
+          retention-days: 7
+
+      - name: Publish GitHub Release (When tagged)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+          generate_release_notes: true
