@@ -564,3 +564,70 @@ body, html {
   border-color: var(--accent);
   transform: translateY(-2px);
 }
+/* ==========================================================================
+   PAGE LOADING PROGRESS BAR (MÉP TRÊN VIEWPORT)
+   ========================================================================== */
+.page-loading-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2.5px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-shield) 50%, var(--accent) 100%);
+  background-size: 200% 100%;
+  z-index: 9999;
+  animation: loading-bar-move 1.2s infinite linear;
+}
+
+@keyframes loading-bar-move {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   FIND IN PAGE POPOVER (CTRL + F)
+   ========================================================================== */
+.find-bar {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 99999;
+  animation: slide-up 0.15s ease-out;
+}
+
+.find-bar input {
+  height: 28px;
+  width: 180px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0 8px;
+  font-size: 12px;
+  outline: none;
+}
+.find-bar input:focus {
+  border-color: var(--accent);
+}
+
+/* ==========================================================================
+   TAB ẨN DANH (INCOGNITO TAB CHIP)
+   ========================================================================== */
+.tab-chip.incognito {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #c4b5fd;
+}
+.tab-chip.incognito.active {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: #8b5cf6;
+  color: #ffffff;
+}
