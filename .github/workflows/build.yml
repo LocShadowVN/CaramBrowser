@@ -53,6 +53,19 @@ jobs:
       - name: Pin rmp dependency
         run: cargo update -p rmp --precise 0.8.11 || true
 
+      # TỰ ĐỘNG BÓC SỐ VERSION TỪ GIT TAG VÀ GHI VÀO tauri.conf.json + Cargo.toml
+      - name: Auto-Sync Version From Git Tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -z "$VERSION" ] || [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            VERSION="1.0.0"
+          fi
+          echo "Detected Release Version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+          sed -i -E "s/\"version\": \"[^\"]+\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
+          sed -i -E "0,/version = \"[^\"]+\"/s/version = \"[^\"]+\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
+
       - name: Generate Cultural Vietnamese App Icons
         run: |
           mkdir -p src-tauri/icons
@@ -116,7 +129,6 @@ jobs:
           cargo tauri icon src-tauri/icons/app-icon.svg -o src-tauri/icons
           cp src-tauri/icons/icon.png src-tauri/icons/128x128.png || true
 
-      # ĐƯA LÊN TRƯỚC BƯỚC BUILD ĐỂ GÓI ĐỦ 300K RULES
       - name: Fetch and Bundle 300k+ Adblock & Cookie Rules
         run: |
           mkdir -p src-tauri/resources
@@ -131,33 +143,30 @@ jobs:
         run: |
           cargo tauri build
 
-      # CHUẨN HOÁ TÊN FILE ĐÚNG 100% THEO README (KHÔNG CÓ DẤU CÁCH)
       - name: Normalize & Prepare Release Binaries
         run: |
           mkdir -p release-artifacts
+          VERSION="${APP_VERSION:-1.0.0}"
           
-          # Đổi tên file .deb thành caram-browser_1.0.0_amd64.deb
           DEB_FILE=$(find target/release/bundle/deb src-tauri/target/release/bundle/deb -name "*.deb" | head -n 1)
           if [ -n "$DEB_FILE" ]; then
-            echo "Found deb: $DEB_FILE"
-            cp "$DEB_FILE" release-artifacts/caram-browser_1.0.0_amd64.deb
+            cp "$DEB_FILE" "release-artifacts/caram-browser_${VERSION}_amd64.deb"
+            cp "$DEB_FILE" "release-artifacts/caram-browser_amd64.deb"
           fi
 
-          # Đổi tên file .AppImage thành caram-browser_1.0.0_amd64.AppImage
           APPIMAGE_FILE=$(find target/release/bundle/appimage src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -n 1)
           if [ -n "$APPIMAGE_FILE" ]; then
-            echo "Found AppImage: $APPIMAGE_FILE"
-            cp "$APPIMAGE_FILE" release-artifacts/caram-browser_1.0.0_amd64.AppImage
+            cp "$APPIMAGE_FILE" "release-artifacts/caram-browser_${VERSION}_amd64.AppImage"
+            cp "$APPIMAGE_FILE" "release-artifacts/caram-browser_amd64.AppImage"
           fi
 
-          # Copy file binary thực thi
           if [ -f "target/release/caram-browser" ]; then
             cp "target/release/caram-browser" release-artifacts/caram-browser
           elif [ -f "src-tauri/target/release/caram-browser" ]; then
             cp "src-tauri/target/release/caram-browser" release-artifacts/caram-browser
           fi
 
-          echo "=== Danh sách file đã chuẩn hóa đúng chuẩn README ==="
+          echo "=== Danh sách file phát hành version $VERSION ==="
           ls -la release-artifacts/
 
       - name: Upload Artifacts for Manual Download
