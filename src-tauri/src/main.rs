@@ -17,7 +17,6 @@ use tauri::window::WindowBuilder;
 use tauri::{LogicalPosition, LogicalSize, PhysicalSize, WebviewUrl};
 
 fn main() {
-    // 1. KHẮC PHỤC LỖI MÀN HÌNH XÁM/TRẮNG TRÊN LINUX, WSLG VÀ NVIDIA GPU
     #[cfg(target_os = "linux")]
     {
         std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
@@ -48,7 +47,6 @@ fn main() {
             let phys_size = window.inner_size().unwrap_or(PhysicalSize::new(1400, 900));
             let logical_size = phys_size.to_logical::<f64>(scale);
 
-            // 2. DÙNG WebviewUrl::default() ĐỂ TỰ ĐỘNG BẮT ĐÚNG PORT 1420 KHI DEV VÀ index.html KHI BUILD
             let ui_webview = WebviewBuilder::new(
                 "ui_chrome",
                 WebviewUrl::default(),
@@ -74,6 +72,10 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::get_app_version,
+            commands::check_for_updates,
+            commands::apply_update,
+            commands::restart_browser,
             commands::open_native_tab,
             commands::switch_tab_view,
             commands::close_native_tab,
