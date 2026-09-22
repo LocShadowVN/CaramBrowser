@@ -8,7 +8,7 @@
 ## English Version
 
 ### 1. Our Pledge
-We as members, contributors, and leaders pledge to make participation in the Caram Browser community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
+We as members, contributors, and leaders pledge to make participation in the Vibird Browser community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
 
 We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
 
@@ -46,7 +46,7 @@ All community leaders are obligated to respect the privacy and security of the r
 ## Bản Tiếng Việt
 
 ### 1. Cam kết của chúng tôi
-Chúng tôi, với tư cách là thành viên, người đóng góp và quản trị dự án Caram Browser, cam kết xây dựng một môi trường tham gia văn minh, cởi mở và tôn trọng lẫn nhau cho tất cả mọi người, không phân biệt độ tuổi, ngoại hình, khuyết tật, sắc tộc, giới tính, mức độ kinh nghiệm, trình độ học vấn, địa vị xã hội hoặc niềm tin cá nhân.
+Chúng tôi, với tư cách là thành viên, người đóng góp và quản trị dự án Vibird Browser, cam kết xây dựng một môi trường tham gia văn minh, cởi mở và tôn trọng lẫn nhau cho tất cả mọi người, không phân biệt độ tuổi, ngoại hình, khuyết tật, sắc tộc, giới tính, mức độ kinh nghiệm, trình độ học vấn, địa vị xã hội hoặc niềm tin cá nhân.
 
 ### 2. Tiêu chuẩn hành xử
 Những hành vi được khuyến khích:
