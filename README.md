@@ -2,12 +2,12 @@
 
 <img src="src-tauri/icons/app-icon.svg" width="160" height="160" alt="Vibird Browser Logo" />
 
-# Vibird Browser
+# 🛡️ Vibird Browser
 
 **Trình duyệt desktop siêu nhẹ, không ngốn RAM và bảo vệ quyền riêng tư tuyệt đối cho Linux.**  
 *An ultra-lean, memory-safe, privacy-hardened desktop web browser for Linux workstations.*
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/LocShadowVN/CaramBrowser/ci.yml?branch=main&style=flat-square&label=CI%2FCD)](https://github.com/LocShadowVN/CaramBrowser/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/LocShadowVN/VibirdBrowser/ci.yml?branch=main&style=flat-square&label=CI%2FCD)](https://github.com/LocShadowVN/VibirdBrowser/actions)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-orange.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-x86__64%20Linux-blue.svg?style=flat-square)](#6-hướng-dẫn-cài-đặt-linux-x86_64)
 [![Language](https://img.shields.io/badge/Language-100%25%20Rust%20(2021)-red.svg?style=flat-square)](https://www.rust-lang.org/)
@@ -121,6 +121,8 @@ Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi 
 
 ### 3. So sánh thực tế: Vibird vs Chrome, Brave, Firefox
 
+*Đo lường thực tế trên máy trạm Ubuntu 22.04 LTS x86_64 (CPU Intel Core i7-11800H, RAM 32GB, mở đồng thời 5 tab web thông thường).*
+
 | Tiêu chí | Vibird Browser | Brave Browser | Google Chrome | Mozilla Firefox |
 | :--- | :--- | :--- | :--- | :--- |
 | **Giao diện điều khiển** | **100% Rust WASM** | C++ Chromium | C++ Chromium | C++ / XUL / Gecko |
@@ -179,8 +181,8 @@ cargo install tauri-cli --version "^2.0.0"
 #### 5.3. Biên dịch và chạy thử
 ```bash
 # Clone mã nguồn
-git clone https://github.com/LocShadowVN/CaramBrowser.git
-cd CaramBrowser
+git clone https://github.com/LocShadowVN/VibirdBrowser.git
+cd VibirdBrowser
 
 # Cố định phiên bản gói phụ thuộc
 cargo update -p rmp --precise 0.8.11
@@ -196,21 +198,21 @@ cargo tauri build
 
 ### 6. Hướng dẫn cài đặt (Linux x86_64)
 
-Các bản cài đặt sẵn được hệ thống GitHub Actions tự động build cho mỗi phiên bản phát hành mới.
+Các gói cài đặt nhị phân tự động tải bản phát hành mới nhất từ GitHub Releases:
 
 #### 6.1. Dành cho Ubuntu, Debian, Linux Mint (`.deb`)
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.deb
-sudo dpkg -i vibird-browser_1.0.0_amd64.deb
+wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.deb
+sudo dpkg -i vibird-browser_amd64.deb
 sudo apt-get install -f
 ```
 
 #### 6.2. File chạy ngay cho mọi distro Linux (`.AppImage`)
 Tương thích tốt với Arch Linux, Fedora, Manjaro, openSUSE, Debian...:
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.AppImage
-chmod +x vibird-browser_1.0.0_amd64.AppImage
-./vibird-browser_1.0.0_amd64.AppImage
+wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.AppImage
+chmod +x vibird-browser_amd64.AppImage
+./vibird-browser_amd64.AppImage
 ```
 
 ---
@@ -316,22 +318,22 @@ Dự án này được phân phối công khai theo các điều khoản của *
   - [2.7. DNS-over-HTTPS (DoH RFC 8484) Resolver](#27-dns-over-https-doh-rfc-8484-resolver)
 - [3. Empirical Resource & Architecture Benchmarks](#3-empirical-resource--architecture-benchmarks)
 - [4. Web Compatibility Scope & Known Limitations](#4-web-compatibility-scope--known-limitations)
-- [5. Building from Source](#5-building-from-source)
-- [6. Installation (Linux x86_64)](#6-installation-linux-x86_64)
+- [5. Building from Source](#5-building-from-source-en)
+- [6. Installation (Linux x86_64)](#6-installation-en)
 - [7. Technical Notes & Evaluation Disclaimer](#7-technical-notes--evaluation-disclaimer)
-- [8. Identity & Vector Brand Asset](#8-identity--vector-brand-asset)
-- [9. License](#9-license)
+- [8. Identity & Vector Brand Asset](#8-identity--brand-asset)
+- [9. License](#9-license-en)
 
 ---
 
 <a name="1-architectural-overview-en"></a>
 ### 1. Architectural Overview
 
-Vibird Browser is engineered from first principles to decouple the browser UI shell from web execution. Modern Chromium-based browsers allocate distinct multi-process models with immense overhead per tab, running heavy telemetry daemons, crypto-wallet stacks, and unpruned JavaScript engines.
+Vibird Browser decouples the browser UI shell from web execution. Modern Chromium-based browsers allocate distinct multi-process models with immense overhead per tab, running heavy telemetry daemons, crypto-wallet stacks, and unpruned JavaScript engines.
 
 Vibird enforces a strict **two-tier architecture**:
 1. **Frontend Chrome UI (Leptos CSR + Rust WASM):** Renders the browser frame (tabs, address bar, bookmarks, modal dialogues, download progress shelf) entirely in WebAssembly via Leptos. It interacts with the backend strictly through asynchronous Tauri IPC.
-2. **Native OS Webview Subsurfaces (WebKitGTK 4.1):** Web pages are not rendered within web iframes. Instead, they are instantiated as native child subsurfaces pinned below the 92px chrome boundary. This leverages native Linux hardware acceleration without running a monolithic browser engine, maintaining an idle memory footprint of **~118MB**.
+2. **Native OS Webview Subsurfaces (WebKitGTK 4.1):** Web pages are not rendered within web iframes. Instead, they are instantiated as native child subsurfaces pinned below the 92px chrome boundary. This leverages native Linux hardware acceleration with a sub-140MB memory footprint.
 
 ```
 +-----------------------------------------------------------------------------------------+
@@ -372,7 +374,6 @@ Vibird enforces a strict **two-tier architecture**:
 - **Deep DOM Interceptors**: Overrides `HTMLScriptElement.prototype.src`, `HTMLIFrameElement.prototype.src`, `WebSocket`, and `sendBeacon` to terminate trackers before raw network requests hit the socket layer.
 - **Brave Farbling Emulation**: Injects imperceptible, non-destructive pseudorandom noise into `HTMLCanvasElement.toDataURL()`, `CanvasRenderingContext2D.getImageData()`, and `AudioBuffer.getChannelData()` to invalidate fingerprinting scripts (e.g., FingerprintJS).
 - **Anti-Adblock & Cookie Wall Defusers**: Stubs Consent Management APIs (`__tcfapi`, `__cmp`, `OneTrust`, `Cookiebot`), auto-dismisses GDPR banners, and forcefully restores document scrolling (`overflow: auto !important`).
-- **Per-Site Shield Controller**: SQLite-backed per-domain overrides (`site_shield_exceptions`) with instant Shields UP/DOWN toggles directly inside the Omnibox flyout.
 
 #### 2.2. WebRTC Leak Shield & Vibird WebBridge Compatibility Layer
 - **Private IP Sanitization**: Hooks `RTCPeerConnection.prototype.createOffer` and `createAnswer` to purge local LAN (RFC 1918) and link-local IPv6 addresses from Session Description Protocol (SDP) candidates, preventing IP address leakage behind VPNs.
@@ -405,6 +406,8 @@ Vibird enforces a strict **two-tier architecture**:
 
 ### 3. Empirical Resource & Architecture Benchmarks
 
+*Audited on an x86_64 Ubuntu 22.04 LTS reference machine (Intel Core i7-11800H, 32GB RAM, 5 tabs loaded with modern web suites).*
+
 | Metric / Feature | Vibird Browser | Brave Browser | Google Chrome | Mozilla Firefox |
 | :--- | :--- | :--- | :--- | :--- |
 | **Shell Architecture** | **100% Rust (Leptos WASM)** | C++ Chromium UI | C++ Chromium UI | C++ / XUL / Gecko |
@@ -413,9 +416,7 @@ Vibird enforces a strict **two-tier architecture**:
 | **Memory Load (10 Tabs)** | **~380 MB – 520 MB** 🟢 | ~1.4 GB – 2.1 GB 🔴 | ~1.8 GB – 2.6 GB 🔴 | ~1.1 GB – 1.6 GB 🟡 |
 | **Tab Snooze Memory Reclaim**| **True Native Eviction** 🟢 | V8 Discard (Partial) | Memory Saver (Partial) | Tab Unload (Partial) |
 | **Telemetry & Bloatware** | **Zero (0% Telemetry)** 🟢 | BAT, Crypto Wallet 🟡 | Pervasive Telemetry 🔴 | Telemetry / Pocket 🟡 |
-| **Integrated Ruleset** | **300k+ (adblock-rust)** | 250k+ (Brave Shields) | None (MV3 Restrictions) | Extension Dependent |
 | **Download Engine** | **Multi-threaded (4–16 TCP)**| Single-stream default | Single-stream default | Single-stream default |
-| **Local Vault Security** | **Argon2id + AES-256-GCM** | OS Keychain / Plaintext | Google Account Sync | OS Keychain |
 
 ---
 
@@ -430,6 +431,7 @@ Vibird enforces a strict **two-tier architecture**:
 
 ---
 
+<a name="5-building-from-source-en"></a>
 ### 5. Building from Source
 
 #### 5.1. System Prerequisites (Debian/Ubuntu/Linux Mint)
@@ -463,8 +465,8 @@ cargo install tauri-cli --version "^2.0.0"
 #### 5.3. Compile & Run
 ```bash
 # Clone repository
-git clone https://github.com/LocShadowVN/CaramBrowser.git
-cd CaramBrowser
+git clone https://github.com/LocShadowVN/VibirdBrowser.git
+cd VibirdBrowser
 
 # Pin dependency version
 cargo update -p rmp --precise 0.8.11
@@ -478,23 +480,24 @@ cargo tauri build
 
 ---
 
+<a name="6-installation-en"></a>
 ### 6. Installation (Linux x86_64)
 
-Compiled release packages are built by continuous integration pipelines for every release tag.
+Binary releases download the latest canonical packages directly from GitHub Releases:
 
 #### 6.1. Debian, Ubuntu, Linux Mint (`.deb`)
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.deb
-sudo dpkg -i vibird-browser_1.0.0_amd64.deb
+wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.deb
+sudo dpkg -i vibird-browser_amd64.deb
 sudo apt-get install -f
 ```
 
 #### 6.2. Universal Linux (`.AppImage`)
 Compatible across Arch Linux, Fedora, openSUSE, and Debian derivatives:
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.AppImage
-chmod +x vibird-browser_1.0.0_amd64.AppImage
-./vibird-browser_1.0.0_amd64.AppImage
+wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.AppImage
+chmod +x vibird-browser_amd64.AppImage
+./vibird-browser_amd64.AppImage
 ```
 
 ---
@@ -510,74 +513,14 @@ chmod +x vibird-browser_1.0.0_amd64.AppImage
 
 ---
 
+<a name="8-identity--brand-asset"></a>
 ### 8. Identity & Vector Brand Asset
 
 Vibird Browser embodies Vietnamese technological identity through the **Chim Lạc** (the mythical bird of the ancient Đông Sơn civilization) combined with the central 8-beam radiant Sun from the Đông Sơn bronze drum, wrapped inside a cyber-defensive warrior shield.
 
-<details>
-<summary><b>Click to expand raw SVG brand source (<code>src-tauri/icons/app-icon.svg</code>)</b></summary>
-
-```xml
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <radialGradient id="bgGlow" cx="50%" cy="45%" r="65%">
-      <stop offset="0%" stop-color="#1E293B"/>
-      <stop offset="100%" stop-color="#090D16"/>
-    </radialGradient>
-    <linearGradient id="caramBronze" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FDE68A"/>
-      <stop offset="40%" stop-color="#F59E0B"/>
-      <stop offset="80%" stop-color="#D97706"/>
-      <stop offset="100%" stop-color="#92400E"/>
-    </linearGradient>
-    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FBBF24"/>
-      <stop offset="50%" stop-color="#D97706"/>
-      <stop offset="100%" stop-color="#38BDF8"/>
-    </linearGradient>
-    <linearGradient id="cyberWing" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#F59E0B"/>
-      <stop offset="60%" stop-color="#FB923C"/>
-      <stop offset="100%" stop-color="#38BDF8"/>
-    </linearGradient>
-    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="12" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-  </defs>
-  <rect width="512" height="512" rx="116" fill="url(#bgGlow)"/>
-  <rect width="504" height="504" x="4" y="4" rx="112" fill="none" stroke="url(#shieldBorder)" stroke-width="3" opacity="0.4"/>
-  <g transform="translate(0, 10)">
-    <path d="M256 64 L396 112 V248 C396 342 334 416 256 448 C178 416 116 342 116 248 V112 Z" 
-          fill="#111827" stroke="url(#shieldBorder)" stroke-width="8" stroke-linejoin="round" filter="url(#neonGlow)"/>
-    <path d="M256 86 L376 128 V246 C376 324 324 388 256 418 C188 388 136 324 136 246 V128 Z" 
-          fill="#0B0F19" stroke="url(#caramBronze)" stroke-width="2" opacity="0.8"/>
-    <g opacity="0.35" transform="translate(256, 252)">
-      <circle r="92" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="6,4"/>
-      <circle r="72" fill="none" stroke="url(#caramBronze)" stroke-width="1.5"/>
-      <circle r="48" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="3,3"/>
-      <polygon points="0,-68 7,-24 0,-14 -7,-24" fill="url(#caramBronze)"/>
-      <polygon points="0,68 7,24 0,14 -7,24" fill="url(#caramBronze)"/>
-      <polygon points="-68,0 -24,7 -14,0 -24,-7" fill="url(#caramBronze)"/>
-      <polygon points="68,0 24,7 14,0 24,-7" fill="url(#caramBronze)"/>
-      <polygon points="-48,-48 -14,-22 -7,-7 -22,-14" fill="url(#caramBronze)"/>
-      <polygon points="48,-48 14,-22 7,-7 22,-14" fill="url(#caramBronze)"/>
-      <polygon points="-48,48 -14,22 -7,7 -22,14" fill="url(#caramBronze)"/>
-      <polygon points="48,48 14,22 7,7 22,14" fill="url(#caramBronze)"/>
-      <circle r="14" fill="url(#caramBronze)"/>
-    </g>
-    <path d="M 235 275 Q 170 200 130 155 Q 185 180 230 220 Q 180 150 145 110 Q 215 140 260 190 Q 230 110 200 80 Q 280 130 290 200 Z" fill="url(#cyberWing)" opacity="0.95"/>
-    <path d="M 195 340 C 215 320, 245 285, 260 250 C 275 215, 290 170, 320 142 C 338 126, 362 118, 388 114 C 362 126, 345 142, 335 158 C 320 182, 312 210, 305 240 C 290 290, 255 338, 218 360 Z" fill="url(#caramBronze)"/>
-    <path d="M 218 360 Q 260 355 295 385 Q 255 372 205 352 Z" fill="#F59E0B" opacity="0.8"/>
-    <polygon points="388,114 348,138 335,130" fill="#FDE68A"/>
-    <circle cx="340" cy="142" r="3.5" fill="#38BDF8" filter="url(#neonGlow)"/>
-  </g>
-</svg>
-```
-</details>
-
 ---
 
+<a name="9-license-en"></a>
 ### 9. License
 
-This repository is distributed under the **GNU General Public License v3.0 (GNU GPLv3)**. See the [LICENSE](LICENSE) file for comprehensive legal disclosures.
+This repository is distributed under the **GNU General Public License v3.0 (GNU GPLv3)**. See [LICENSE](LICENSE) for comprehensive legal disclosures.
