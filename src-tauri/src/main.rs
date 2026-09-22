@@ -37,7 +37,7 @@ fn main() {
         .manage(vault_session)
         .setup(|app| {
             let window = WindowBuilder::new(app, "main")
-                .title("Caram Browser")
+                .title("Vibird Browser")
                 .inner_size(1400.0, 900.0)
                 .min_inner_size(950.0, 650.0)
                 .resizable(true)
@@ -124,5 +124,5 @@ fn main() {
             commands::toggle_devtools
         ])
         .run(tauri::generate_context!())
-        .expect("Caram Browser launch failure");
+        .expect("Vibird Browser launch failure");
 }
