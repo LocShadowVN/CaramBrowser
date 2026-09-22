@@ -134,8 +134,8 @@ fn extract_domain(url_str: &str) -> String {
             return h;
         }
     }
-    if url_str.starts_with("caram://") {
-        return "Caram System".into();
+    if url_str.starts_with("vibird://") || url_str.starts_with("caram://") {
+        return "Vibird System".into();
     }
     url_str.to_string()
 }
@@ -145,10 +145,10 @@ fn App() -> impl IntoView {
     let (tab_counter, set_tab_counter) = create_signal(1u64);
     let (tabs, set_tabs) = create_signal(vec![BrowserTab {
         id: "tab_1".into(),
-        url: "caram://newtab".into(),
+        url: "vibird://newtab".into(),
         title: "New Tab".into(),
         blocked_count: 0,
-        history: vec!["caram://newtab".into()],
+        history: vec!["vibird://newtab".into()],
         history_index: 0,
         page_mode: PageMode::NewTab,
         is_snoozed: false,
@@ -196,7 +196,7 @@ fn App() -> impl IntoView {
         });
     });
 
-    // 1. ĐỒNG BỘ TIẾN TRÌNH TẢI IDM
+    // Lắng nghe tiến trình tải IDM
     spawn_local(async move {
         let cb = Closure::wrap(Box::new(move |event_obj: JsValue| {
             if let Ok(payload_val) = js_sys::Reflect::get(&event_obj, &JsValue::from_str("payload")) {
@@ -209,7 +209,7 @@ fn App() -> impl IntoView {
         cb.forget();
     });
 
-    // 2. ĐỒNG BỘ HAI CHIỀU (URL, TIÊU ĐỀ, TRẠNG THÁI LOADING BAR TỪ WEBKIT)
+    // Lắng nghe đồng bộ 2 chiều (URL, Title, Loading Bar)
     spawn_local(async move {
         let cb = Closure::wrap(Box::new(move |event_obj: JsValue| {
             if let Ok(payload_val) = js_sys::Reflect::get(&event_obj, &JsValue::from_str("payload")) {
@@ -228,8 +228,7 @@ fn App() -> impl IntoView {
                     }
                     set_tabs.set(list);
 
-                    // Cập nhật thanh omnibox nếu tab đó đang là tab active
-                    if active_tab_id.get() == state.tab_id && !state.url.starts_with("caram://") {
+                    if active_tab_id.get() == state.tab_id && !state.url.starts_with("vibird://") && !state.url.starts_with("caram://") {
                         set_omnibox_text.set(state.url);
                     }
                 }
@@ -239,7 +238,7 @@ fn App() -> impl IntoView {
         cb.forget();
     });
 
-    // 3. SMART TAB SNOOZER (Ru ngủ tab sau 10 phút)
+    // Smart Tab Snoozer
     spawn_local(async move {
         loop {
             let promise = js_sys::Promise::new(&mut |resolve, _| {
@@ -255,7 +254,7 @@ fn App() -> impl IntoView {
             let mut changed = false;
 
             for t in list.iter_mut() {
-                if t.id != cur_active && !t.is_snoozed && !t.url.starts_with("caram://") && (now - t.last_active > 600_000.0) {
+                if t.id != cur_active && !t.is_snoozed && !t.url.starts_with("vibird://") && !t.url.starts_with("caram://") && (now - t.last_active > 600_000.0) {
                     t.is_snoozed = true;
                     changed = true;
                     let id_c = t.id.clone();
@@ -273,7 +272,7 @@ fn App() -> impl IntoView {
 
     let sync_site_state = move |target_url: &str| {
         let domain = extract_domain(target_url);
-        if !domain.starts_with("Caram") && !domain.is_empty() {
+        if !domain.starts_with("Vibird") && !domain.starts_with("Caram") && !domain.is_empty() {
             let d1 = domain.clone();
             let d2 = domain;
             spawn_local(async move {
@@ -310,43 +309,43 @@ fn App() -> impl IntoView {
             let target = target_url.trim().to_string();
 
             let is_internal_route = match target.as_str() {
-                "caram://newtab" => {
+                "vibird://newtab" | "caram://newtab" => {
                     tab.url = target.clone();
                     tab.title = if incognito { "Incognito Tab".into() } else { "New Tab".into() };
                     tab.page_mode = PageMode::NewTab;
                     true
                 }
-                "caram://settings" => {
+                "vibird://settings" | "caram://settings" => {
                     tab.url = target.clone();
                     tab.title = "Settings".into();
                     tab.page_mode = PageMode::Settings;
                     true
                 }
-                "caram://history" => {
+                "vibird://history" | "caram://history" => {
                     tab.url = target.clone();
                     tab.title = "History".into();
                     tab.page_mode = PageMode::History;
                     true
                 }
-                "caram://bookmarks" => {
+                "vibird://bookmarks" | "caram://bookmarks" => {
                     tab.url = target.clone();
                     tab.title = "Bookmarks".into();
                     tab.page_mode = PageMode::Bookmarks;
                     true
                 }
-                "caram://downloads" => {
+                "vibird://downloads" | "caram://downloads" => {
                     tab.url = target.clone();
                     tab.title = "Downloads".into();
                     tab.page_mode = PageMode::Downloads;
                     true
                 }
-                "caram://extensions" => {
+                "vibird://extensions" | "caram://extensions" => {
                     tab.url = target.clone();
                     tab.title = "Extensions".into();
                     tab.page_mode = PageMode::Extensions;
                     true
                 }
-                "caram://passwords" => {
+                "vibird://passwords" | "caram://passwords" => {
                     tab.url = target.clone();
                     tab.title = "Password Vault".into();
                     tab.page_mode = PageMode::Vault;
@@ -362,7 +361,7 @@ fn App() -> impl IntoView {
                     tab.history_index = tab.history.len() - 1;
                 }
                 set_tabs.set(list);
-                set_omnibox_text.set(if target == "caram://newtab" { String::new() } else { target });
+                set_omnibox_text.set(if target == "vibird://newtab" || target == "caram://newtab" { String::new() } else { target });
 
                 let all_ids: Vec<String> = tabs.get().iter().map(|t| t.id.clone()).collect();
                 let _ = call_tauri::<_, ()>("switch_tab_view", &SwitchTabArgs {
@@ -406,10 +405,10 @@ fn App() -> impl IntoView {
         let new_id = format!("tab_{}", next_counter);
         list.push(BrowserTab {
             id: new_id.clone(),
-            url: "caram://newtab".into(),
+            url: "vibird://newtab".into(),
             title: if incognito { "Incognito Tab".into() } else { "New Tab".into() },
             blocked_count: 0,
-            history: vec!["caram://newtab".into()],
+            history: vec!["vibird://newtab".into()],
             history_index: 0,
             page_mode: PageMode::NewTab,
             is_snoozed: false,
@@ -431,7 +430,7 @@ fn App() -> impl IntoView {
         });
     };
 
-    // 4. HỆ THỐNG BẮT PHÍM TẮT TOÀN CỤC (Shortcuts Engine)
+    // Phím tắt toàn cục
     {
         let window = web_sys::window().unwrap();
         let key_closure = Closure::wrap(Box::new(move |e: web_sys::KeyboardEvent| {
@@ -442,7 +441,7 @@ fn App() -> impl IntoView {
                 match key.to_lowercase().as_str() {
                     "t" => {
                         e.prevent_default();
-                        create_new_tab(e.shift_key()); // Ctrl+Shift+T mở tab ẩn danh
+                        create_new_tab(e.shift_key());
                     }
                     "w" => {
                         e.prevent_default();
@@ -454,7 +453,7 @@ fn App() -> impl IntoView {
                             let next_idx = del_index.unwrap_or(1).saturating_sub(1);
                             let next_tab = &t_list[next_idx];
                             set_active_tab_id.set(next_tab.id.clone());
-                            set_omnibox_text.set(if next_tab.url == "caram://newtab" { String::new() } else { next_tab.url.clone() });
+                            set_omnibox_text.set(if next_tab.url == "vibird://newtab" || next_tab.url == "caram://newtab" { String::new() } else { next_tab.url.clone() });
                             set_tabs.set(t_list);
                             spawn_local(async move {
                                 let _ = call_tauri::<_, ()>("close_native_tab", &CloseNativeTabArgs { tab_id: cur_id }).await;
@@ -485,11 +484,11 @@ fn App() -> impl IntoView {
                     }
                     "h" => {
                         e.prevent_default();
-                        navigate("caram://history".into(), true);
+                        navigate("vibird://history".into(), true);
                     }
                     "j" => {
                         e.prevent_default();
-                        navigate("caram://downloads".into(), true);
+                        navigate("vibird://downloads".into(), true);
                     }
                     "tab" => {
                         e.prevent_default();
@@ -504,7 +503,7 @@ fn App() -> impl IntoView {
                             let target_tab = &list[next_idx];
                             let next_id = target_tab.id.clone();
                             set_active_tab_id.set(next_id.clone());
-                            set_omnibox_text.set(if target_tab.url == "caram://newtab" { String::new() } else { target_tab.url.clone() });
+                            set_omnibox_text.set(if target_tab.url == "vibird://newtab" || target_tab.url == "caram://newtab" { String::new() } else { target_tab.url.clone() });
                         }
                     }
                     _ => {}
@@ -552,7 +551,7 @@ fn App() -> impl IntoView {
                                     let id_c = id.clone();
                                     set_active_tab_id.set(id_c.clone());
                                     let mut list = tabs.get();
-                                    let is_int = list.iter().find(|t| t.id == id_c).map(|t| t.url.starts_with("caram://")).unwrap_or(true);
+                                    let is_int = list.iter().find(|t| t.id == id_c).map(|t| t.url.starts_with("vibird://") || t.url.starts_with("caram://")).unwrap_or(true);
                                     let cur_url = list.iter().find(|t| t.id == id_c).map(|t| t.url.clone()).unwrap_or_default();
                                     let was_snoozed = list.iter().find(|t| t.id == id_c).map(|t| t.is_snoozed).unwrap_or(false);
                                     let is_inc = list.iter().find(|t| t.id == id_c).map(|t| t.is_incognito).unwrap_or(false);
@@ -563,7 +562,7 @@ fn App() -> impl IntoView {
                                     }
                                     set_tabs.set(list);
 
-                                    set_omnibox_text.set(if cur_url == "caram://newtab" { String::new() } else { cur_url.clone() });
+                                    set_omnibox_text.set(if cur_url == "vibird://newtab" || cur_url == "caram://newtab" { String::new() } else { cur_url.clone() });
                                     sync_site_state(&cur_url);
 
                                     let all_ids: Vec<String> = tabs.get().iter().map(|t| t.id.clone()).collect();
@@ -584,17 +583,17 @@ fn App() -> impl IntoView {
                                 }
                             >
                                 {if incognito {
-                                    view! { <span style="margin-right:3px;">"🕶️"</span> }.into_view()
+                                    view! { <span style="margin-right:4px; font-size:10px; font-weight:700; color:#c4b5fd;">"[INC]"</span> }.into_view()
                                 } else {
                                     view! { <span style="display:none;"></span> }.into_view()
                                 }}
                                 <span>{tab.title}</span>
 
-                                {if !active && !snoozed && !tab.url.starts_with("caram://") {
+                                {if !active && !snoozed && !tab.url.starts_with("vibird://") && !tab.url.starts_with("caram://") {
                                     view! {
                                         <div
                                             class="btn-tab-snooze"
-                                            title="Snooze tab to free RAM"
+                                            title="Snooze tab"
                                             on:click=move |ev| {
                                                 ev.stop_propagation();
                                                 let id_s = id_snooze.clone();
@@ -608,7 +607,7 @@ fn App() -> impl IntoView {
                                                 });
                                             }
                                         >
-                                            "💤"
+                                            "Z"
                                         </div>
                                     }.into_view()
                                 } else {
@@ -626,7 +625,7 @@ fn App() -> impl IntoView {
                                             let next_idx = del_index.unwrap_or(1).saturating_sub(1);
                                             let next_tab = &t_list[next_idx];
                                             set_active_tab_id.set(next_tab.id.clone());
-                                            set_omnibox_text.set(if next_tab.url == "caram://newtab" { String::new() } else { next_tab.url.clone() });
+                                            set_omnibox_text.set(if next_tab.url == "vibird://newtab" || next_tab.url == "caram://newtab" { String::new() } else { next_tab.url.clone() });
                                         }
                                         set_tabs.set(t_list);
                                         spawn_local(async move {
@@ -691,7 +690,7 @@ fn App() -> impl IntoView {
 
                 <button
                     class="icon-btn"
-                    title="Reload (Ctrl+R, Shift+R for Hard Reload)"
+                    title="Reload (Ctrl+R)"
                     on:click=move |_| {
                         let cur = active_tab_id.get();
                         let list = tabs.get();
@@ -760,7 +759,7 @@ fn App() -> impl IntoView {
 
                     <button class="icon-btn" on:click=move |_| {
                         let cur_url = omnibox_text.get();
-                        if !cur_url.is_empty() && !cur_url.starts_with("caram://") {
+                        if !cur_url.is_empty() && !cur_url.starts_with("vibird://") && !cur_url.starts_with("caram://") {
                             spawn_local(async move {
                                 let _ = call_tauri::<_, ()>("save_bookmark", &SaveBookmarkArgs { url: cur_url.clone(), title: cur_url }).await;
                                 if let Ok(bm) = call_tauri::<_, Vec<BookmarkRecord>>("fetch_bookmarks", &EmptyArgs {}).await {
@@ -771,10 +770,10 @@ fn App() -> impl IntoView {
                     }><IconBookmark /></button>
                 </div>
 
-                <button class="icon-btn" on:click=move |_| set_find_open.set(!find_open.get()) title="Find in Page (Ctrl+F)"><span style="font-weight:700; font-size:12px;">"🔍"</span></button>
-                <button class="icon-btn" on:click=move |_| navigate("caram://extensions".into(), true) title="Extensions"><IconExtension /></button>
-                <button class="icon-btn" on:click=move |_| navigate("caram://downloads".into(), true) title="Downloads (Ctrl+J)"><IconDownload /></button>
-                <button class="icon-btn" on:click=move |_| navigate("caram://passwords".into(), true) title="Password Vault"><IconKey /></button>
+                <button class="icon-btn" on:click=move |_| set_find_open.set(!find_open.get()) title="Find in Page (Ctrl+F)"><span style="font-weight:700; font-size:12px;">"F"</span></button>
+                <button class="icon-btn" on:click=move |_| navigate("vibird://extensions".into(), true) title="Extensions"><IconExtension /></button>
+                <button class="icon-btn" on:click=move |_| navigate("vibird://downloads".into(), true) title="Downloads (Ctrl+J)"><IconDownload /></button>
+                <button class="icon-btn" on:click=move |_| navigate("vibird://passwords".into(), true) title="Password Vault"><IconKey /></button>
                 <button class="icon-btn" on:click=move |_| set_menu_open.set(!menu_open.get()) title="Settings & Menu"><IconMenu /></button>
             </div>
 
@@ -789,7 +788,6 @@ fn App() -> impl IntoView {
                 }).collect_view()}
             </div>
 
-            // HỘP THOẠI TÌM KIẾM TRONG TRANG (FIND IN PAGE - CTRL + F)
             {move || if find_open.get() {
                 view! {
                     <div class="find-bar">
@@ -804,8 +802,8 @@ fn App() -> impl IntoView {
                                 }
                             }
                         />
-                        <button class="icon-btn" title="Previous" on:click=move |_| do_find(false)>"▲"</button>
-                        <button class="icon-btn" title="Next" on:click=move |_| do_find(true)>"▼"</button>
+                        <button class="icon-btn" title="Previous" on:click=move |_| do_find(false)>"P"</button>
+                        <button class="icon-btn" title="Next" on:click=move |_| do_find(true)>"N"</button>
                         <button class="icon-btn" title="Close" on:click=move |_| set_find_open.set(false)><IconClose /></button>
                     </div>
                 }
@@ -813,7 +811,6 @@ fn App() -> impl IntoView {
                 view! { <div style="display:none;"></div> }
             }}
 
-            // SHIELD CONTROLLER FLYOUT
             {move || if shield_open.get() {
                 let cur_url = omnibox_text.get();
                 let domain = extract_domain(&cur_url);
@@ -823,7 +820,7 @@ fn App() -> impl IntoView {
                 view! {
                     <div class="shield-flyout">
                         <div class="flyout-head">
-                            <strong>"Caram Shield Core"</strong>
+                            <strong>"Vibird Shield Core"</strong>
                             <span class="shield-status-badge" style=badge_style>
                                 {if is_site_enabled { "Shields UP" } else { "Shields DOWN" }}
                             </span>
@@ -859,7 +856,6 @@ fn App() -> impl IntoView {
                             <span style="font-size:11px; color:var(--text-secondary)">"Trackers, Ads & Cookies Neutralized"</span>
                         </div>
 
-                        // Nút xoá sạch Cookie của trang này
                         <button
                             class="btn-action"
                             style="margin-top:12px; width:100%; background:var(--bg-tertiary); font-size:11px;"
@@ -869,7 +865,7 @@ fn App() -> impl IntoView {
                                 });
                             }
                         >
-                            "Clear Cookies & Cache for this site"
+                            "Clear Cookies & Cache"
                         </button>
                     </div>
                 }
@@ -883,13 +879,13 @@ fn App() -> impl IntoView {
                         <div class="menu-item" on:click=move |_| create_new_tab(false)>"New Tab (Ctrl+T)"</div>
                         <div class="menu-item" on:click=move |_| create_new_tab(true)>"New Incognito Tab (Ctrl+Shift+T)"</div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://history".into(), true)>"History (Ctrl+H)"</div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://downloads".into(), true)>"Downloads (Ctrl+J)"</div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://bookmarks".into(), true)>"Bookmarks"</div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://extensions".into(), true)>"Extensions"</div>
+                        <div class="menu-item" on:click=move |_| navigate("vibird://history".into(), true)>"History (Ctrl+H)"</div>
+                        <div class="menu-item" on:click=move |_| navigate("vibird://downloads".into(), true)>"Downloads (Ctrl+J)"</div>
+                        <div class="menu-item" on:click=move |_| navigate("vibird://bookmarks".into(), true)>"Bookmarks"</div>
+                        <div class="menu-item" on:click=move |_| navigate("vibird://extensions".into(), true)>"Extensions"</div>
                         <div class="menu-divider"></div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://passwords".into(), true)>"Passwords (Vault)"</div>
-                        <div class="menu-item" on:click=move |_| navigate("caram://settings".into(), true)>"Settings"</div>
+                        <div class="menu-item" on:click=move |_| navigate("vibird://passwords".into(), true)>"Passwords (Vault)"</div>
+                        <div class="menu-item" on:click=move |_| navigate("vibird://settings".into(), true)>"Settings"</div>
                         <div class="menu-divider"></div>
                         <div class="menu-item" on:click=move |_| {
                             spawn_local(async move {
@@ -902,7 +898,6 @@ fn App() -> impl IntoView {
                 view! { <div style="display:none;"></div> }
             }}
 
-            // DOWNLOAD SHELF ĐA LUỒNG IDM
             {move || active_download.get().map(|prog| {
                 view! {
                     <div class="download-shelf">
@@ -931,7 +926,6 @@ fn App() -> impl IntoView {
             })}
 
             <main class="viewport-body">
-                // THANH TIẾN TRÌNH TẢI TRANG (PAGE LOADING PROGRESS BAR)
                 {move || {
                     let cur_id = active_tab_id.get();
                     let is_loading = tabs.get().into_iter().find(|t| t.id == cur_id).map(|t| t.is_loading).unwrap_or(false);
