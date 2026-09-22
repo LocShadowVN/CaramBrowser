@@ -53,7 +53,6 @@ jobs:
       - name: Pin rmp dependency
         run: cargo update -p rmp --precise 0.8.11 || true
 
-      # TỰ ĐỘNG BÓC SỐ VERSION TỪ GIT TAG VÀ GHI VÀO tauri.conf.json + Cargo.toml
       - name: Auto-Sync Version From Git Tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -139,7 +138,7 @@ jobs:
             > src-tauri/resources/rules.txt
           echo "Bundled $(wc -l < src-tauri/resources/rules.txt) rules into installer."
 
-      - name: Build Full Caram Browser App
+      - name: Build Full Vibird Browser App
         run: |
           cargo tauri build
 
@@ -150,20 +149,22 @@ jobs:
           
           DEB_FILE=$(find target/release/bundle/deb src-tauri/target/release/bundle/deb -name "*.deb" | head -n 1)
           if [ -n "$DEB_FILE" ]; then
-            cp "$DEB_FILE" "release-artifacts/caram-browser_${VERSION}_amd64.deb"
-            cp "$DEB_FILE" "release-artifacts/caram-browser_amd64.deb"
+            cp "$DEB_FILE" "release-artifacts/vibird-browser_${VERSION}_amd64.deb"
+            cp "$DEB_FILE" "release-artifacts/vibird-browser_amd64.deb"
           fi
 
           APPIMAGE_FILE=$(find target/release/bundle/appimage src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -n 1)
           if [ -n "$APPIMAGE_FILE" ]; then
-            cp "$APPIMAGE_FILE" "release-artifacts/caram-browser_${VERSION}_amd64.AppImage"
-            cp "$APPIMAGE_FILE" "release-artifacts/caram-browser_amd64.AppImage"
+            cp "$APPIMAGE_FILE" "release-artifacts/vibird-browser_${VERSION}_amd64.AppImage"
+            cp "$APPIMAGE_FILE" "release-artifacts/vibird-browser_amd64.AppImage"
           fi
 
-          if [ -f "target/release/caram-browser" ]; then
-            cp "target/release/caram-browser" release-artifacts/caram-browser
-          elif [ -f "src-tauri/target/release/caram-browser" ]; then
-            cp "src-tauri/target/release/caram-browser" release-artifacts/caram-browser
+          if [ -f "target/release/vibird-browser" ]; then
+            cp "target/release/vibird-browser" release-artifacts/vibird-browser
+          elif [ -f "src-tauri/target/release/vibird-browser" ]; then
+            cp "src-tauri/target/release/vibird-browser" release-artifacts/vibird-browser
+          elif [ -f "target/release/caram-browser" ]; then
+            cp "target/release/caram-browser" release-artifacts/vibird-browser
           fi
 
           echo "=== Danh sách file phát hành version $VERSION ==="
@@ -172,7 +173,7 @@ jobs:
       - name: Upload Artifacts for Manual Download
         uses: actions/upload-artifact@v4
         with:
-          name: Caram-Browser-Linux-Build
+          name: Vibird-Browser-Linux-Build
           path: release-artifacts/*
           retention-days: 7
 
