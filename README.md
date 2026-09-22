@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="src-tauri/icons/app-icon.svg" width="160" height="160" alt="Caram Browser Logo" />
+<img src="src-tauri/icons/app-icon.svg" width="160" height="160" alt="Vibird Browser Logo" />
 
-# 🛡️ Caram Browser
+# Vibird Browser
 
 **Trình duyệt desktop siêu nhẹ, không ngốn RAM và bảo vệ quyền riêng tư tuyệt đối cho Linux.**  
 *An ultra-lean, memory-safe, privacy-hardened desktop web browser for Linux workstations.*
@@ -11,7 +11,7 @@
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-orange.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-x86__64%20Linux-blue.svg?style=flat-square)](#6-hướng-dẫn-cài-đặt-linux-x86_64)
 [![Language](https://img.shields.io/badge/Language-100%25%20Rust%20(2021)-red.svg?style=flat-square)](https://www.rust-lang.org/)
-[![Adblock Core](https://img.shields.io/badge/Shield-Brave%20adblock--rust-green.svg?style=flat-square)](#21-lõi-chặn-quảng-cáo-caram-shield-300k-rules-của-brave)
+[![Adblock Core](https://img.shields.io/badge/Shield-Brave%20adblock--rust-green.svg?style=flat-square)](#21-lõi-chặn-quảng-cáo-vibird-shield-300k-rules-của-brave)
 [![Engine](https://img.shields.io/badge/Render%20Engine-WebKitGTK%204.1-purple.svg?style=flat-square)](#1-tổng-quan-kiến-trúc)
 
 [Bản Tiếng Việt](#tiếng-việt) • [English Documentation](#english)
@@ -26,14 +26,14 @@
 ### Mục Lục
 - [1. Tổng quan kiến trúc](#1-tổng-quan-kiến-trúc)
 - [2. Các tính năng nổi bật](#2-các-tính-năng-nổi-bật)
-  - [2.1. Lõi chặn quảng cáo Caram Shield (300k+ rules của Brave)](#21-lõi-chặn-quảng-cáo-caram-shield-300k-rules-của-brave)
+  - [2.1. Lõi chặn quảng cáo Vibird Shield (300k+ rules của Brave)](#21-lõi-chặn-quảng-cáo-vibird-shield-300k-rules-của-brave)
   - [2.2. Chống lộ IP qua WebRTC & Giả lập Chrome WebBridge](#22-chống-lộ-ip-qua-webrtc--giả-lập-chrome-webbridge)
   - [2.3. Ru ngủ tab thông minh (Tự giải phóng RAM)](#23-ru-ngủ-tab-thông-minh-tự-giải-phóng-ram)
   - [2.4. Bóc mã theo dõi trên URL & Gỡ Google AMP](#24-bóc-mã-theo-dõi-trên-url--gỡ-google-amp)
   - [2.5. Tải file đa luồng xé băng thông như IDM](#25-tải-file-đa-luồng-xé-băng-thông-như-idm)
   - [2.6. Két lưu mật khẩu Argon2id & Tự động điền 1 chạm](#26-két-lưu-mật-khẩu-argon2id--tự-động-điền-1-chạm)
   - [2.7. Mã hoá truy vấn DNS (DNS-over-HTTPS)](#27-mã-hoá-truy-vấn-dns-dns-over-https)
-- [3. So sánh thực tế: Caram vs Chrome, Brave, Firefox](#3-so-sánh-thực-tế-caram-vs-chrome-brave-firefox)
+- [3. So sánh thực tế: Vibird vs Chrome, Brave, Firefox](#3-so-sánh-thực-tế-vibird-vs-chrome-brave-firefox)
 - [4. Độ tương thích web & Một số điểm cần lưu ý](#4-độ-tương-thích-web--một-số-điểm-cần-lưu-ý)
 - [5. Hướng dẫn tự build từ mã nguồn](#5-hướng-dẫn-tự-build-từ-mã-nguồn)
 - [6. Hướng dẫn cài đặt (Linux x86_64)](#6-hướng-dẫn-cài-đặt-linux-x86_64)
@@ -45,20 +45,20 @@
 
 ### 1. Tổng quan kiến trúc
 
-Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi tab mở ra là kéo theo hàng tá tiến trình con, dính telemetry theo dõi và nhồi nhét cả đống tính năng thừa thãi (ví tiền ảo, quảng cáo đối tác).
+Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi tab mở ra là kéo theo hàng tá tiến trình con, dính telemetry theo dõi và nhồi nhét nhiều tính năng thừa thãi (ví tiền ảo, quảng cáo đối tác).
 
-**Caram Browser** chọn cách tiếp cận tách biệt 2 lớp độc lập:
+**Vibird Browser** chọn cách tiếp cận tách biệt 2 lớp độc lập:
 1. **Giao diện điều khiển (Frontend WASM):** Toàn bộ thanh tab, thanh gõ URL, trang quản lý tải file và cài đặt được viết bằng **Rust (Leptos CSR)**, biên dịch ra WebAssembly. Giao diện chạy mượt, phản hồi tức thì và tốn cực ít RAM.
 2. **Khung hiển thị web (Native WebKitGTK 4.1):** Trang web không chạy trong thẻ iframe mà được gắn thẳng vào subsurface của Linux, nằm khớp dưới thanh công cụ 92px. Nhờ tận dụng engine WebKit có sẵn trên hệ điều hành, máy chạy êm mát và chỉ ăn khoảng **~118MB RAM**.
 
 ```
 +-----------------------------------------------------------------------------------------+
-|                                    CARAM BROWSER                                        |
+|                                    VIBIRD BROWSER                                       |
 +-----------------------------------------------------------------------------------------+
 |  GIAO DIỆN: Rust Leptos WASM (Chạy mượt, siêu nhẹ)                                      |
 |  - Thanh Tab & Thanh địa chỉ Omnibox động                                               |
 |  - Thanh Download Shelf báo tiến độ IDM theo thời gian thực                             |
-|  - Các trang nội bộ: caram://newtab | settings | vault | history | downloads            |
+|  - Các trang nội bộ: vibird://newtab | settings | vault | history | downloads           |
 +-----------------------------------------------------------------------------------------+
                                           ▲
                          Giao tiếp qua Tauri v2 IPC (Bất đồng bộ)
@@ -84,9 +84,9 @@ Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi 
 
 ### 2. Các tính năng nổi bật
 
-#### 2.1. Lõi chặn quảng cáo Caram Shield (300k+ rules của Brave)
+#### 2.1. Lõi chặn quảng cáo Vibird Shield (300k+ rules của Brave)
 - **Tách luồng chạy riêng:** Quá trình kiểm tra link theo dõi được đưa sang một thread OS riêng biệt chạy nhân `adblock-rust` chính thức của Brave. Lướt web nặng đến mấy thì giao diện thanh công cụ vẫn mượt, không bị đơ.
-- **Nạp sẵn hơn 300.000 quy tắc:** Gom sẵn các bộ lọc nổi tiếng thế giới: EasyList (chặn quảng cáo), EasyPrivacy (chặn theo dõi ngầm) và Fanboy's Annoyance (dẹp banner rác). Bạn có thể ném thêm rules cá nhân vào `~/.local/share/caram-browser/custom_rules.txt`.
+- **Nạp sẵn hơn 300.000 quy tắc:** Gom sẵn các bộ lọc nổi tiếng: EasyList (chặn quảng cáo), EasyPrivacy (chặn theo dõi ngầm) và Fanboy's Annoyance (dẹp banner rác). Bạn có thể ném thêm rules cá nhân vào `~/.local/share/vibird-browser/custom_rules.txt`.
 - **Chặn sâu từ tầng DOM:** Can thiệp trực tiếp vào prototype tạo script, iframe ẩn, kết nối WebSocket và Beacon ngầm để diệt tracker trước khi trình duyệt kịp gửi request ra ngoài.
 - **Chống nhận diện máy tính (Brave Farbling):** Bơm một chút nhiễu ngẫu nhiên siêu nhỏ vào Canvas và AudioContext. Mắt thường nhìn không thấy khác biệt, nhưng các công cụ theo dõi fingerprint (như FingerprintJS) sẽ bị "mù" hoàn toàn.
 - **Tự dẹp banner Cookie & GDPR:** Tự đóng các bảng xin quyền cookie gây phiền phức (OneTrust, Cookiebot...), đồng thời mở khoá thanh cuộn trang nếu website cố tình đóng băng màn hình.
@@ -105,7 +105,7 @@ Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi 
 - **Né Google AMP:** Tự nhận diện link trung gian Google AMP (`google.com/amp/s/` hoặc `ampproject.org`) và điều hướng thẳng về bài viết gốc của trang báo.
 
 #### 2.5. Tải file đa luồng xé băng thông như IDM
-- **Tải phân mảnh qua HTTP Range:** Nếu máy chủ cho phép tải từng phần, Caram sẽ tự động chia nhỏ file ra từ **4 đến 16 luồng TCP tải song song** rồi ghép lại sau khi tải xong. Tốc độ vượt trội hoàn toàn so với tải 1 luồng mặc định của Chrome.
+- **Tải phân mảnh qua HTTP Range:** Nếu máy chủ cho phép tải từng phần, Vibird sẽ tự động chia nhỏ file ra từ **4 đến 16 luồng TCP tải song song** rồi ghép lại sau khi tải xong. Tốc độ vượt trội hoàn toàn so với tải 1 luồng mặc định của Chrome.
 - **Bắt link tải tự động (Download Sniffer):** Bấm vào link file `.zip`, `.tar.gz`, `.iso`, `.deb`... là trình duyệt tự chuyển qua bộ tải đa luồng.
 - **Chống lỗi ghi đè file:** Lọc bỏ toàn bộ ký tự nguy hiểm (`..`, `/`, `\`) trên tên file, đảm bảo an toàn cho thư mục hệ thống.
 
@@ -119,18 +119,16 @@ Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi 
 
 ---
 
-### 3. So sánh thực tế: Caram vs Chrome, Brave, Firefox
+### 3. So sánh thực tế: Vibird vs Chrome, Brave, Firefox
 
-*Đo lường thực tế trên máy trạm Ubuntu 22.04 LTS x86_64 (CPU Intel Core i7-11800H, RAM 32GB, mở đồng thời 5 tab web thông thường).*
-
-| Tiêu chí | Caram Browser | Brave Browser | Google Chrome | Mozilla Firefox |
+| Tiêu chí | Vibird Browser | Brave Browser | Google Chrome | Mozilla Firefox |
 | :--- | :--- | :--- | :--- | :--- |
 | **Giao diện điều khiển** | **100% Rust WASM** | C++ Chromium | C++ Chromium | C++ / XUL / Gecko |
 | **Nhân hiển thị (Render)**| **WebKitGTK 4.1 Native** | Blink / V8 (C++) | Blink / V8 (C++) | Gecko / SpiderMonkey |
 | **RAM khi mở 1 tab chờ** | **~95 MB – 135 MB** 🟢 | ~550 MB – 750 MB 🔴 | ~600 MB – 900 MB 🔴 | ~450 MB – 650 MB 🟡 |
 | **RAM khi mở 10 tabs** | **~380 MB – 520 MB** 🟢 | ~1.4 GB – 2.1 GB 🔴 | ~1.8 GB – 2.6 GB 🔴 | ~1.1 GB – 1.6 GB 🟡 |
 | **Giải phóng RAM tab ngủ**| **Huỷ sạch Webview** 🟢 | Bỏ bớt cache V8 (Một phần)| Tạm dừng tab (Một phần) | Unload tab (Một phần) |
-| **Dữ liệu rác & Telemetry**| **0% (Hoàn toàn sạch)** 🟢 | Ví Crypto, tiền ảo BAT 🟡 | Thu thập diện rộng 🔴 | Telemetry, Pocket 🟡 |
+| **Dữ liệu rác & Telemetry**| **0% (Hoàn toàn sạch)** 🟢 | Ví Crypto, tiền ảo BAT 🟡 | Thu thập toàn diện 🔴 | Telemetry, Pocket 🟡 |
 | **Chặn quảng cáo tích hợp**| **300k+ rules (Lõi Brave)** | 250k+ rules (Brave Shields)| Không có (Sắp ép MV3) | Phải cài thêm add-on |
 | **Tốc độ tải file** | **Đa luồng IDM (4–16 TCP)** | 1 luồng mặc định | 1 luồng mặc định | 1 luồng mặc định |
 | **Két mật khẩu nội bộ** | **Argon2id + AES-256** | Keychain OS / Plaintext | Đồng bộ tài khoản Google | Keychain OS |
@@ -142,9 +140,9 @@ Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi 
 1. **Họp video trên Google Meet / Microsoft Teams:**
    WebKitGTK chạy rất chuẩn các công nghệ web mở. Tuy nhiên, Google Meet dùng nhiều codec độc quyền của Chromium (xóa phông nền bằng AI nội bộ, chia sẻ màn hình riêng). Vì vậy khi họp Google Meet trên Linux có thể gặp thông báo khuyến nghị dùng Chrome hoặc tính năng xoá phông không mượt.
 2. **Xem phim bản quyền DRM (Netflix, Spotify Web):**
-   Caram tôn trọng phần mềm mã nguồn mở tự do nên không cài sẵn thư viện độc quyền Google Widevine. Bạn sẽ không thể xem phim Netflix nếu không tự cấu hình thêm thư viện này từ ngoài vào.
+   Vibird tôn trọng phần mềm mã nguồn mở tự do nên không cài sẵn thư viện độc quyền Google Widevine. Bạn sẽ không thể xem phim Netflix nếu không tự cấu hình thêm thư viện này từ ngoài vào.
 3. **Tiện ích từ Chrome Web Store:**
-   Hiện tại Caram hỗ trợ nạp các extension lập trình từ thư mục giải nén (`manifest.json`), chưa hỗ trợ bấm cài trực tiếp từ chợ ứng dụng của Google.
+   Hiện tại Vibird hỗ trợ nạp các extension lập trình từ thư mục giải nén (`manifest.json`), chưa hỗ trợ bấm cài trực tiếp từ chợ ứng dụng của Google.
 
 ---
 
@@ -202,17 +200,17 @@ Các bản cài đặt sẵn được hệ thống GitHub Actions tự động b
 
 #### 6.1. Dành cho Ubuntu, Debian, Linux Mint (`.deb`)
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.deb
-sudo dpkg -i caram-browser_1.0.0_amd64.deb
+wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.deb
+sudo dpkg -i vibird-browser_1.0.0_amd64.deb
 sudo apt-get install -f
 ```
 
 #### 6.2. File chạy ngay cho mọi distro Linux (`.AppImage`)
 Tương thích tốt với Arch Linux, Fedora, Manjaro, openSUSE, Debian...:
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.AppImage
-chmod +x caram-browser_1.0.0_amd64.AppImage
-./caram-browser_1.0.0_amd64.AppImage
+wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.AppImage
+chmod +x vibird-browser_1.0.0_amd64.AppImage
+./vibird-browser_1.0.0_amd64.AppImage
 ```
 
 ---
@@ -221,7 +219,7 @@ chmod +x caram-browser_1.0.0_amd64.AppImage
 
 > [!NOTE]
 > **THÔNG TIN PHIÊN BẢN THỬ NGHIỆM (MVP)**  
-> Caram Browser là dự án mã nguồn mở thử nghiệm được xây dựng với sự trợ giúp của AI dưới sự giám sát và định hướng kiến trúc hệ thống của lập trình viên.
+> Vibird Browser là dự án mã nguồn mở thử nghiệm được xây dựng với sự trợ giúp của AI dưới sự giám sát và định hướng kiến trúc hệ thống của lập trình viên.
 > - **Chưa qua kiểm toán độc lập**: Mã nguồn dự án chưa trải qua các cuộc đánh giá an ninh mạng chính thức từ các công ty bảo mật thương mại.
 > - **Miễn trừ trách nhiệm**: Phần mềm được phát hành theo giấy phép GNU GPL-3.0 theo dạng "nguyên trạng" (as-is). Tác giả không chịu trách nhiệm với bất kỳ sự cố mất mát dữ liệu nào phát sinh trong quá trình sử dụng.
 > - **Khuyến nghị**: Dự án rất thích hợp cho anh em lập trình viên cần một trình duyệt siêu nhẹ, máy mát, lướt web tốc độ cao và tiết kiệm pin laptop. Không khuyến nghị dùng làm két lưu trữ chính cho các tài khoản tài chính giá trị cao.
@@ -230,7 +228,7 @@ chmod +x caram-browser_1.0.0_amd64.AppImage
 
 ### 8. Bản sắc thiết kế
 
-Caram Browser mang bản sắc công nghệ Việt với hình tượng **Chim Lạc** sải cánh vươn cao, kết hợp cùng ánh hào quang **Mặt Trời 8 Tia Trống Đồng Đông Sơn** đặt trang trọng bên trong **Chiếc Khiên Công Nghệ**.
+Vibird Browser mang bản sắc công nghệ Việt với hình tượng **Chim Lạc** sải cánh vươn cao, kết hợp cùng ánh hào quang **Mặt Trời 8 Tia Trống Đồng Đông Sơn** đặt trang trọng bên trong **Chiếc Khiên Công Nghệ**.
 
 <details>
 <summary><b>Nhấn để xem toàn bộ mã nguồn SVG (<code>src-tauri/icons/app-icon.svg</code>)</b></summary>
@@ -307,14 +305,14 @@ Dự án này được phân phối công khai theo các điều khoản của *
 ## English Documentation
 
 ### Table of Contents
-- [1. Architectural Overview](#1-architectural-overview)
+- [1. Architectural Overview](#1-architectural-overview-en)
 - [2. Key Technical Subsystems](#2-key-technical-subsystems)
-  - [2.1. Caram Shield Core & Privacy Subsystem](#21-caram-shield-core--privacy-subsystem)
-  - [2.2. WebRTC Leak Shield & Caram WebBridge Layer](#22-webrtc-leak-shield--caram-webbridge-layer)
+  - [2.1. Vibird Shield Core & Privacy Subsystem](#21-vibird-shield-core--privacy-subsystem)
+  - [2.2. WebRTC Leak Shield & Vibird WebBridge Compatibility Layer](#22-webrtc-leak-shield--vibird-webbridge-compatibility-layer)
   - [2.3. Smart Memory Tab Snoozer](#23-smart-memory-tab-snoozer)
   - [2.4. Clean URLs & De-AMP Subsystem](#24-clean-urls--de-amp-subsystem)
   - [2.5. High-Speed Multi-Threaded Downloader (IDM-Style)](#25-high-speed-multi-threaded-downloader-idm-style)
-  - [2.6. Caram Vault (Argon2id + AES-256-GCM) & 1-Click Autofill](#26-caram-vault-argon2id--aes-256-gcm--1-click-autofill)
+  - [2.6. Vibird Vault (Argon2id + AES-256-GCM) & 1-Click Autofill](#26-vibird-vault-argon2id--aes-256-gcm--1-click-autofill)
   - [2.7. DNS-over-HTTPS (DoH RFC 8484) Resolver](#27-dns-over-https-doh-rfc-8484-resolver)
 - [3. Empirical Resource & Architecture Benchmarks](#3-empirical-resource--architecture-benchmarks)
 - [4. Web Compatibility Scope & Known Limitations](#4-web-compatibility-scope--known-limitations)
@@ -326,22 +324,23 @@ Dự án này được phân phối công khai theo các điều khoản của *
 
 ---
 
+<a name="1-architectural-overview-en"></a>
 ### 1. Architectural Overview
 
-Caram Browser is designed from first principles to decouple the browser UI shell from web execution. Modern Chromium-based browsers allocate distinct multi-process models with immense overhead per tab, running heavy telemetry daemons, crypto-wallet stacks, and unpruned JavaScript engines.
+Vibird Browser is engineered from first principles to decouple the browser UI shell from web execution. Modern Chromium-based browsers allocate distinct multi-process models with immense overhead per tab, running heavy telemetry daemons, crypto-wallet stacks, and unpruned JavaScript engines.
 
-Caram enforces a strict **two-tier architecture**:
+Vibird enforces a strict **two-tier architecture**:
 1. **Frontend Chrome UI (Leptos CSR + Rust WASM):** Renders the browser frame (tabs, address bar, bookmarks, modal dialogues, download progress shelf) entirely in WebAssembly via Leptos. It interacts with the backend strictly through asynchronous Tauri IPC.
 2. **Native OS Webview Subsurfaces (WebKitGTK 4.1):** Web pages are not rendered within web iframes. Instead, they are instantiated as native child subsurfaces pinned below the 92px chrome boundary. This leverages native Linux hardware acceleration without running a monolithic browser engine, maintaining an idle memory footprint of **~118MB**.
 
 ```
 +-----------------------------------------------------------------------------------------+
-|                                    CARAM BROWSER                                        |
+|                                    VIBIRD BROWSER                                       |
 +-----------------------------------------------------------------------------------------+
 |  FRONTEND LAYER: Leptos 0.6 (Rust WASM CSR)                                             |
 |  - Reactive Tab Bar & State-Preserving Dynamic Omnibox                                  |
 |  - Real-Time IDM Progress Shelf & Shields Up/Down Flyout                                |
-|  - Internal Routing: caram://newtab | settings | vault | history | downloads            |
+|  - Internal Routing: vibird://newtab | settings | vault | history | downloads           |
 +-----------------------------------------------------------------------------------------+
                                           ▲
                          Asynchronous Tauri v2 IPC
@@ -367,15 +366,15 @@ Caram enforces a strict **two-tier architecture**:
 
 ### 2. Key Technical Subsystems
 
-#### 2.1. Caram Shield Core & Privacy Subsystem
+#### 2.1. Vibird Shield Core & Privacy Subsystem
 - **Dedicated Worker Thread Isolation**: Network URL inspections are offloaded to an independent OS thread hosting the official Brave Software `adblock-rust` engine, eliminating UI freezing during high-throughput subresource evaluation.
-- **300,000+ Precompiled Rules**: Bundles EasyList, EasyPrivacy, and Fanboy's Annoyance filters with auto-detection of local overrides at `~/.local/share/caram-browser/custom_rules.txt`.
+- **300,000+ Precompiled Rules**: Bundles EasyList, EasyPrivacy, and Fanboy's Annoyance filters with auto-detection of local overrides at `~/.local/share/vibird-browser/custom_rules.txt`.
 - **Deep DOM Interceptors**: Overrides `HTMLScriptElement.prototype.src`, `HTMLIFrameElement.prototype.src`, `WebSocket`, and `sendBeacon` to terminate trackers before raw network requests hit the socket layer.
 - **Brave Farbling Emulation**: Injects imperceptible, non-destructive pseudorandom noise into `HTMLCanvasElement.toDataURL()`, `CanvasRenderingContext2D.getImageData()`, and `AudioBuffer.getChannelData()` to invalidate fingerprinting scripts (e.g., FingerprintJS).
 - **Anti-Adblock & Cookie Wall Defusers**: Stubs Consent Management APIs (`__tcfapi`, `__cmp`, `OneTrust`, `Cookiebot`), auto-dismisses GDPR banners, and forcefully restores document scrolling (`overflow: auto !important`).
 - **Per-Site Shield Controller**: SQLite-backed per-domain overrides (`site_shield_exceptions`) with instant Shields UP/DOWN toggles directly inside the Omnibox flyout.
 
-#### 2.2. WebRTC Leak Shield & Caram WebBridge Layer
+#### 2.2. WebRTC Leak Shield & Vibird WebBridge Compatibility Layer
 - **Private IP Sanitization**: Hooks `RTCPeerConnection.prototype.createOffer` and `createAnswer` to purge local LAN (RFC 1918) and link-local IPv6 addresses from Session Description Protocol (SDP) candidates, preventing IP address leakage behind VPNs.
 - **Client Hints & Navigator Spoofing**: Exposes valid `navigator.userAgentData` and mocks Chrome 130 on Linux x86_64 to neutralize bot-detection gatekeeping scripts on platforms like Discord, Slack, and Claude.
 - **Chrome Runtime Polyfills**: Implements `window.chrome.runtime`, `csi()`, and `loadTimes()` to prevent breakage on Chromium-optimized enterprise suites.
@@ -390,11 +389,11 @@ Caram enforces a strict **two-tier architecture**:
 
 #### 2.5. High-Speed Multi-Threaded Downloader (IDM-Style)
 - **Segmented Range-Chunk Streaming**: Evaluates `Accept-Ranges: bytes` and `Content-Length`. Automatically forks payloads into **4 to 16 concurrent TCP threads**, downloading discrete binary chunks directly into partitioned `.part` streams.
-- **Automatic Download Sniffer**: Native WebKit `on_download` events intercept file downloads (`.zip`, `.tar.gz`, `.iso`, `.deb`), cancelling WebKit's single-stream download and routing to Caram's accelerated multi-threaded engine.
+- **Automatic Download Sniffer**: Native WebKit `on_download` events intercept file downloads (`.zip`, `.tar.gz`, `.iso`, `.deb`), cancelling WebKit's single-stream download and routing to Vibird's accelerated multi-threaded engine.
 - **Security-Hardened File Sinks**: Employs strict filename sanitization, stripping path traversal tokens (`..`, `/`, `\`) and validating target paths against canonicalized directory bounds.
 - **Real-Time Telemetry**: Emits live transfer speeds (Mbps), dynamic progress percentages, and active thread counts to the floating frontend shelf every 500ms.
 
-#### 2.6. Caram Vault (Argon2id + AES-256-GCM) & 1-Click Autofill
+#### 2.6. Vibird Vault (Argon2id + AES-256-GCM) & 1-Click Autofill
 - **Envelope Encryption**: Derives an ephemeral Master Key via `Argon2id` (128-bit random salt, high memory-hardness) once upon unlocking. Decrypts 100+ stored credentials in microseconds using `AES-256-GCM` authenticated encryption without CPU lockup.
 - **Secure DOM Injection**: Queries credentials matching the active domain and invokes DOM dispatch routines using strict JSON-serialized payloads, eliminating JavaScript string interpolation vulnerabilities.
 
@@ -406,9 +405,7 @@ Caram enforces a strict **two-tier architecture**:
 
 ### 3. Empirical Resource & Architecture Benchmarks
 
-*Audited on an x86_64 Ubuntu 22.04 LTS reference machine (Intel Core i7-11800H, 32GB RAM, 5 tabs loaded with modern web suites).*
-
-| Metric / Feature | Caram Browser | Brave Browser | Google Chrome | Mozilla Firefox |
+| Metric / Feature | Vibird Browser | Brave Browser | Google Chrome | Mozilla Firefox |
 | :--- | :--- | :--- | :--- | :--- |
 | **Shell Architecture** | **100% Rust (Leptos WASM)** | C++ Chromium UI | C++ Chromium UI | C++ / XUL / Gecko |
 | **Rendering Engine** | **WebKitGTK 4.1 (Native)** | Blink / V8 (C++) | Blink / V8 (C++) | Gecko / SpiderMonkey |
@@ -427,9 +424,9 @@ Caram enforces a strict **two-tier architecture**:
 1. **Enterprise Google/Chromium Workspaces (Google Meet, MS Teams)**:
    WebKitGTK implements standard W3C specifications. However, services such as Google Meet rely heavily on internal Chromium-only WebCodecs, proprietary WebRTC filters, and client-side ML blur pipelines. Video meetings or Wayland screen captures may experience degraded functionality.
 2. **Proprietary DRM Media (Widevine)**:
-   Caram prioritizes open-source standards and does not ship with proprietary Google Widevine Content Decryption Modules (CDM). DRM-protected streaming services (Netflix, Spotify Web, Disney+) will not operate without external CDM manual configurations.
+   Vibird prioritizes open-source standards and does not ship with proprietary Google Widevine Content Decryption Modules (CDM). DRM-protected streaming services (Netflix, Spotify Web, Disney+) will not operate without external CDM manual configurations.
 3. **Chrome Web Store Extensions**:
-   Caram features an internal developer-mode extension parser supporting folder-unpacked `manifest.json` extensions. Direct installation from the Chrome Web Store is not supported.
+   Vibird features an internal developer-mode extension parser supporting folder-unpacked `manifest.json` extensions. Direct installation from the Chrome Web Store is not supported.
 
 ---
 
@@ -487,17 +484,17 @@ Compiled release packages are built by continuous integration pipelines for ever
 
 #### 6.1. Debian, Ubuntu, Linux Mint (`.deb`)
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.deb
-sudo dpkg -i caram-browser_1.0.0_amd64.deb
+wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.deb
+sudo dpkg -i vibird-browser_1.0.0_amd64.deb
 sudo apt-get install -f
 ```
 
 #### 6.2. Universal Linux (`.AppImage`)
 Compatible across Arch Linux, Fedora, openSUSE, and Debian derivatives:
 ```bash
-wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.AppImage
-chmod +x caram-browser_1.0.0_amd64.AppImage
-./caram-browser_1.0.0_amd64.AppImage
+wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.AppImage
+chmod +x vibird-browser_1.0.0_amd64.AppImage
+./vibird-browser_1.0.0_amd64.AppImage
 ```
 
 ---
@@ -506,7 +503,7 @@ chmod +x caram-browser_1.0.0_amd64.AppImage
 
 > [!NOTE]
 > **MINIMUM VIABLE PRODUCT (MVP) EVALUATION NOTICE**  
-> Caram Browser is an open-source experimental prototype engineered with generative AI assistance under human software architecture steering.
+> Vibird Browser is an open-source experimental prototype engineered with generative AI assistance under human software architecture steering.
 > - **Independent Audit Notice**: This software has not yet undergone third-party commercial security or cryptographic audits.
 > - **Disclaimer of Warranty**: Distributed under the terms of the GNU GPL-3.0 license strictly "as is", without warranty of any kind. The contributors disclaim liability for operational disruptions or data loss.
 > - **Intended Application**: Recommended for technical research, documentation browsing, and resource-constrained Linux workstations. Not advised as a primary credentials store for high-value financial assets.
@@ -515,7 +512,7 @@ chmod +x caram-browser_1.0.0_amd64.AppImage
 
 ### 8. Identity & Vector Brand Asset
 
-Caram Browser represents its cultural heritage through the **Chim Lạc** (the mythical bird of the ancient Đông Sơn civilization) combined with the central 8-beam radiant Sun from the Đông Sơn bronze drum, wrapped inside a cyber-defensive warrior shield.
+Vibird Browser embodies Vietnamese technological identity through the **Chim Lạc** (the mythical bird of the ancient Đông Sơn civilization) combined with the central 8-beam radiant Sun from the Đông Sơn bronze drum, wrapped inside a cyber-defensive warrior shield.
 
 <details>
 <summary><b>Click to expand raw SVG brand source (<code>src-tauri/icons/app-icon.svg</code>)</b></summary>
