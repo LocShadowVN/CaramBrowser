@@ -55,7 +55,6 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
     let (doh_result, set_doh_result) = create_signal(String::new());
     let (doh_input, set_doh_input) = create_signal(config.get().custom_doh_url);
 
-    // Phiên bản ứng dụng động (tự nhận từ backend qua get_app_version)
     let (app_version, set_app_version) = create_signal("1.0.0".to_string());
 
     spawn_local(async move {
@@ -68,7 +67,7 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
         w.local_storage()
             .ok()
             .flatten()
-            .and_then(|s| s.get_item("caram_lang").ok().flatten())
+            .and_then(|s| s.get_item("vibird_lang").ok().flatten())
             .map(|l| if l == "en" { Lang::En } else { Lang::Vi })
             .unwrap_or(Lang::Vi)
     } else {
@@ -176,7 +175,7 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
                         {move || t("Cài đặt chung", "General")}
                     </button>
                     <button class=format!("sidebar-btn {}", if tab.get() == SettingsTab::Shield { "active" } else { "" }) on:click=move |_| set_tab.set(SettingsTab::Shield)>
-                        "Caram Shield"
+                        "Vibird Shield"
                     </button>
                     <button class=format!("sidebar-btn {}", if tab.get() == SettingsTab::Dns { "active" } else { "" }) on:click=move |_| set_tab.set(SettingsTab::Dns)>
                         {move || t("Bảo mật DNS", "Secure DNS")}
@@ -230,7 +229,7 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
 
                         SettingsTab::Shield => view! {
                             <div class="panel-card">
-                                <h2>"Caram Shield Core"</h2>
+                                <h2>"Vibird Shield Core"</h2>
                                 <div class="grid-form">
                                     <label>{t("Cấp độ bảo vệ", "Protection Level")}</label>
                                     <select on:change=move |ev| {
@@ -277,7 +276,7 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
                                         set_lang.set(selected);
                                         if let Some(w) = web_sys::window() {
                                             if let Ok(Some(s)) = w.local_storage() {
-                                                let _ = s.set_item("caram_lang", if selected == Lang::En { "en" } else { "vi" });
+                                                let _ = s.set_item("vibird_lang", if selected == Lang::En { "en" } else { "vi" });
                                             }
                                         }
                                     }>
@@ -310,7 +309,7 @@ pub fn SettingsView(config: ReadSignal<AppConfig>, set_config: WriteSignal<AppCo
                                 <div class="update-box">
                                     <div style="display:flex; justify-content:space-between; align-items:center;">
                                         <div>
-                                            <div style="font-weight:700; font-size:14px;">"Caram Browser"</div>
+                                            <div style="font-weight:700; font-size:14px;">"Vibird Browser"</div>
                                             <div style="font-size:12px; color:var(--text-secondary); margin-top:2px; font-family:var(--font-mono);">
                                                 {move || format!("{}: v{}", t("Phiên bản", "Version"), app_version.get())}
                                             </div>
