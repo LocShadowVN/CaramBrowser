@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Caram Browser — Trình Duyệt Desktop Siêu Nhẹ Cho Linux</title>
+  <title>Vibird Browser — Trình Duyệt Desktop Siêu Nhẹ Cho Linux</title>
   <meta name="description" content="Trình duyệt desktop Linux viết 100% bằng Rust và WebKitGTK 4.1. Nhẹ máy, không ngốn RAM, tích hợp sẵn chặn quảng cáo Brave 300k rules và tải file đa luồng kiểu IDM." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
@@ -705,7 +705,7 @@
       font-weight: 700;
     }
 
-    /* Open Source & Transparency Section (Replaces Scary Disclaimer) */
+    /* Open Source & Transparency Section */
     .transparency-wrap {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -832,11 +832,11 @@
       <span>v1.0.0 Release</span>
     </div>
     <span class="lang-vi">
-      🚀 Caram Browser — Trình duyệt Linux thuần Rust, siêu nhẹ và bảo mật.
+      🚀 Vibird Browser — Trình duyệt Linux thuần Rust, siêu nhẹ và bảo mật.
       <a href="https://github.com/LocShadowVN/CaramBrowser" target="_blank" style="color:var(--brand-amber); font-weight:700; text-decoration:none; margin-left:6px;">Mã nguồn GitHub &rarr;</a>
     </span>
     <span class="lang-en">
-      🚀 Caram Browser — Ultra-lean, memory-safe desktop browser for Linux.
+      🚀 Vibird Browser — Ultra-lean, memory-safe desktop browser for Linux.
       <a href="https://github.com/LocShadowVN/CaramBrowser" target="_blank" style="color:var(--brand-amber); font-weight:700; text-decoration:none; margin-left:6px;">Source on GitHub &rarr;</a>
     </span>
   </div>
@@ -867,7 +867,7 @@
           </svg>
         </div>
         <div class="brand-title">
-          <span>Caram Browser</span>
+          <span>Vibird Browser</span>
           <span class="brand-tag">Linux</span>
         </div>
       </a>
@@ -928,7 +928,7 @@
           Tách biệt hoàn toàn giao diện Rust WASM với khung nhìn WebKitGTK 4.1 gốc của Linux. Nói KHÔNG với việc ngốn cả gigabyte RAM như Chromium: máy chạy êm ru với chỉ ~118MB RAM, tích hợp sẵn nhân chặn quảng cáo 300k rules của Brave, tải đa luồng chuẩn IDM và két mật khẩu Argon2id.
         </span>
         <span class="lang-en">
-          Engineered by decoupling a reactive Rust WebAssembly UI from native Linux WebKitGTK 4.1 viewports. Caram eliminates Chromium's 800MB RAM overhead: baseline ~118MB memory footprint, 300k+ Brave filter rules, IDM-style multithread downloader, and an Argon2id Vault.
+          Engineered by decoupling a reactive Rust WebAssembly UI from native Linux WebKitGTK 4.1 viewports. Vibird eliminates Chromium's 800MB RAM overhead: baseline ~118MB memory footprint, 300k+ Brave filter rules, IDM-style multithread downloader, and an Argon2id Vault.
         </span>
       </p>
 
@@ -956,7 +956,7 @@
         </div>
         <div class="terminal-body">
           <div class="terminal-code" id="term-cmd">
-            <span class="prompt">$</span>wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.deb && sudo dpkg -i caram-browser_*.deb
+            <span class="prompt">$</span>wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.deb && sudo dpkg -i vibird-browser_*.deb
           </div>
           <button class="ctrl-pill" onclick="copyTerm(this)">
             <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -977,7 +977,7 @@
               </div>
               <div class="mock-tab active">
                 <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle></svg>
-                <span>caram://newtab</span>
+                <span>vibird://newtab</span>
               </div>
               <div class="mock-tab">
                 <span>Brave Search</span>
@@ -997,7 +997,7 @@
               <div class="mock-omnibox">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <svg viewBox="0 0 24 24" width="13" height="13" stroke="var(--emerald-shield)" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                  <span>https://search.brave.com/search?q=caram+browser</span>
+                  <span>https://search.brave.com/search?q=vibird+browser</span>
                 </div>
                 <div class="badge-shield-live">
                   <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -1060,8 +1060,8 @@
             <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
           </div>
           <h3>
-            <span class="lang-vi">Lõi lọc Brave adblock-rust (Hơn 300.000 Rules)</span>
-            <span class="lang-en">Brave adblock-rust Core (300k+ Rules)</span>
+            <span class="lang-vi">Lõi lọc Vibird Shield (Hơn 300.000 Rules)</span>
+            <span class="lang-en">Vibird Shield Core (300k+ Rules)</span>
           </h3>
           <p>
             <span class="lang-vi">
@@ -1126,8 +1126,8 @@
             <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           </div>
           <h3>
-            <span class="lang-vi">Két mật khẩu Argon2id + AES-256</span>
-            <span class="lang-en">Argon2id + AES-256-GCM Vault</span>
+            <span class="lang-vi">Két mật khẩu Vibird Vault (Argon2id + AES-256)</span>
+            <span class="lang-en">Vibird Vault (Argon2id + AES-256-GCM)</span>
           </h3>
           <p>
             <span class="lang-vi">
@@ -1188,7 +1188,7 @@
           <thead>
             <tr>
               <th><span class="lang-vi">Tiêu chí so sánh</span><span class="lang-en">Evaluation Parameter</span></th>
-              <th>Caram Browser</th>
+              <th>Vibird Browser</th>
               <th>Brave Browser</th>
               <th>Google Chrome</th>
               <th>Mozilla Firefox</th>
@@ -1261,10 +1261,10 @@
 
       <p class="transparency-p">
         <span class="lang-vi">
-          Caram Browser được phát triển với tinh thần cởi mở, không che giấu mã nguồn và không kinh doanh dữ liệu người dùng. Toàn bộ dự án được phát hành công khai theo giấy phép <strong>GNU GPL-3.0</strong> để anh em lập trình viên có thể tự do kiểm tra mã nguồn, đóng góp tính năng hoặc tự biên dịch theo ý mình.
+          Vibird Browser được phát triển với tinh thần cởi mở, không che giấu mã nguồn và không kinh doanh dữ liệu người dùng. Toàn bộ dự án được phát hành công khai theo giấy phép <strong>GNU GPL-3.0</strong> để anh em lập trình viên có thể tự do kiểm tra mã nguồn, đóng góp tính năng hoặc tự biên dịch theo ý mình.
         </span>
         <span class="lang-en">
-          Caram Browser is built on open-source principles with zero telemetry and transparent engineering. Distributed publicly under the <strong>GNU GPL-3.0</strong> license for developers to freely inspect, compile, audit, and contribute.
+          Vibird Browser is built on open-source principles with zero telemetry and transparent engineering. Distributed publicly under the <strong>GNU GPL-3.0</strong> license for developers to freely inspect, compile, audit, and contribute.
         </span>
       </p>
 
@@ -1288,7 +1288,7 @@
           <span>
             <span class="lang-vi">
               Xem đầy đủ lưu ý về an toàn thông tin và phạm vi bản thử nghiệm tại
-              <a href="https://github.com/LocShadowVN/CaramBrowser#7-lưu-ý-kỹ-thuật--tuyên-bố-miễn-trừ" target="_blank" style="color:var(--brand-amber); font-weight:600; text-decoration:none;">Mục Disclaimer trên README &rarr;</a>
+              <a href="https://github.com/LocShadowVN/CaramBrowser#7-lưu-ý-kỹ-thuật--tính-chất-bản-thử-nghiệm" target="_blank" style="color:var(--brand-amber); font-weight:600; text-decoration:none;">Mục Disclaimer trên README &rarr;</a>
             </span>
             <span class="lang-en">
               Read complete technical and evaluation disclosures in the
@@ -1308,8 +1308,8 @@
         <span class="lang-en">Production Packages</span>
       </div>
       <h2 class="section-heading">
-        <span class="lang-vi">Tải Caram Browser cho Linux x86_64</span>
-        <span class="lang-en">Install Caram Browser on Linux x86_64</span>
+        <span class="lang-vi">Tải Vibird Browser cho Linux x86_64</span>
+        <span class="lang-en">Install Vibird Browser on Linux x86_64</span>
       </h2>
       <p class="section-sub">
         <span class="lang-vi">Các gói cài đặt được đóng gói tự động qua CI/CD GitHub Actions cho mỗi lần release.</span>
@@ -1334,7 +1334,7 @@
             <span class="lang-en">Download .deb Release</span>
           </a>
           <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-faint); margin-top:12px; text-align:center;">
-            sudo dpkg -i caram-browser_*.deb
+            sudo dpkg -i vibird-browser_*.deb
           </div>
         </div>
       </div>
@@ -1366,21 +1366,20 @@
   <footer>
     <div class="container footer-inner">
       <div>
-        <strong>Caram Browser</strong> — Bản sắc công nghệ Việt • Mã nguồn mở theo giấy phép <strong>GNU GPL-3.0</strong>.
+        <strong>Vibird Browser</strong> — Bản sắc công nghệ Việt • Mã nguồn mở theo giấy phép <strong>GNU GPL-3.0</strong>.
       </div>
       <div class="footer-links">
         <a href="https://github.com/LocShadowVN/CaramBrowser" target="_blank">Mã nguồn GitHub</a>
         <a href="https://github.com/LocShadowVN/CaramBrowser/releases" target="_blank">Bản phát hành</a>
         <a href="https://github.com/LocShadowVN/CaramBrowser/issues" target="_blank">Báo lỗi</a>
-        <a href="https://github.com/LocShadowVN/CaramBrowser#7-lưu-ý-kỹ-thuật--tuyên-bố-miễn-trừ" target="_blank">Lưu ý kỹ thuật</a>
+        <a href="https://github.com/LocShadowVN/CaramBrowser#7-lưu-ý-kỹ-thuật--tính-chất-bản-thử-nghiệm" target="_blank">Lưu ý kỹ thuật</a>
         <a href="#">Lên đầu trang &uarr;</a>
       </div>
     </div>
   </footer>
 
-  <!-- Vanilla JS (Theme, Language, Terminal tabs) -->
+  <!-- Vanilla JS -->
   <script>
-    // 1. Live Clock
     function updateClock() {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
@@ -1392,7 +1391,6 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // 2. Dark / Light Theme Engine
     const btnTheme = document.getElementById('btn-theme');
     const themeLabel = document.getElementById('theme-label');
     const iconSun = document.getElementById('icon-sun');
@@ -1400,7 +1398,7 @@
 
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem('caram_theme', theme);
+      localStorage.setItem('vibird_theme', theme);
       if (theme === 'dark') {
         themeLabel.innerText = 'Dark';
         iconMoon.style.display = 'block';
@@ -1412,7 +1410,7 @@
       }
     }
 
-    const savedTheme = localStorage.getItem('caram_theme') || 'dark';
+    const savedTheme = localStorage.getItem('vibird_theme') || 'dark';
     applyTheme(savedTheme);
 
     btnTheme.addEventListener('click', () => {
@@ -1420,17 +1418,16 @@
       applyTheme(current === 'dark' ? 'light' : 'dark');
     });
 
-    // 3. Language Engine
     const btnLang = document.getElementById('btn-lang');
     const langLabel = document.getElementById('lang-label');
 
     function applyLang(lang) {
       document.documentElement.setAttribute('data-lang', lang);
-      localStorage.setItem('caram_lang', lang);
+      localStorage.setItem('vibird_lang', lang);
       langLabel.innerText = lang.toUpperCase();
     }
 
-    const savedLang = localStorage.getItem('caram_lang') || 'vi';
+    const savedLang = localStorage.getItem('vibird_lang') || 'vi';
     applyLang(savedLang);
 
     btnLang.addEventListener('click', () => {
@@ -1438,10 +1435,9 @@
       applyLang(current === 'vi' ? 'en' : 'vi');
     });
 
-    // 4. Terminal Command Switcher
     const commands = {
-      deb: 'wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.deb && sudo dpkg -i caram-browser_*.deb',
-      appimage: 'wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/caram-browser_1.0.0_amd64.AppImage && chmod +x *.AppImage && ./*.AppImage',
+      deb: 'wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.deb && sudo dpkg -i vibird-browser_*.deb',
+      appimage: 'wget https://github.com/LocShadowVN/CaramBrowser/releases/latest/download/vibird-browser_1.0.0_amd64.AppImage && chmod +x *.AppImage && ./*.AppImage',
       cargo: 'git clone https://github.com/LocShadowVN/CaramBrowser.git && cd CaramBrowser && cargo tauri build'
     };
 
@@ -1452,7 +1448,6 @@
       codeEl.innerHTML = `<span class="prompt">$</span>${commands[key]}`;
     }
 
-    // 5. Copy Command
     function copyTerm(btn) {
       const codeEl = document.getElementById('term-cmd');
       const textToCopy = codeEl.innerText.replace(/^\$\s*/, '');
