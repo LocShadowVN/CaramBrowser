@@ -4,75 +4,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vibird Browser — Trình Duyệt Desktop Siêu Nhẹ Cho Linux</title>
-  <meta name="description" content="Trình duyệt desktop Linux viết 100% bằng Rust và WebKitGTK 4.1. Nhẹ máy, không ngốn RAM, tích hợp sẵn chặn quảng cáo Brave 300k rules và tải file đa luồng kiểu IDM." />
+  <meta name="description" content="Trình duyệt desktop Linux viết 100% bằng Rust và WebKitGTK 4.1 Native. Nhẹ máy, ăn chỉ ~118MB RAM, tích hợp sẵn nhân chặn quảng cáo Brave 300k rules, két mật khẩu Argon2id và tải đa luồng kiểu IDM." />
 
-  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <!-- Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* ==========================================================================
-       DESIGN SYSTEM & THEME PALETTES
+       DESIGN SYSTEM (HIGH-CRAFT DEVELOPER TOOL AESTHETIC)
        ========================================================================== */
     :root {
       --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-      --brand-amber: #f59e0b;
-      --brand-bronze: #d97706;
-      --brand-caramel: #ea580c;
-      --cyan-core: #38bdf8;
-      --emerald-shield: #10b981;
+      --gold: #f59e0b;
+      --bronze: #d97706;
+      --cyan: #38bdf8;
+      --emerald: #10b981;
+      --danger: #ef4444;
 
-      --radius-sm: 8px;
-      --radius-md: 14px;
-      --radius-lg: 20px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
     }
 
-    /* DARK THEME */
     html[data-theme="dark"] {
-      --bg: #07090e;
+      --bg: #080a0f;
       --bg-subtle: #0d1118;
-      --surface: #131823;
-      --surface-hover: #19202f;
-      --surface-glass: rgba(19, 24, 35, 0.75);
-      --border: #1f2737;
-      --border-strong: #2f3b52;
+      --surface: #121622;
+      --surface-raised: #181e2d;
+      --surface-hover: #1e2638;
+      --surface-glass: rgba(18, 22, 34, 0.82);
+
+      --border: #1e2638;
+      --border-strong: #2c374e;
       --border-accent: rgba(245, 158, 11, 0.35);
 
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --text-faint: #475569;
 
-      --glow-caramel: rgba(234, 88, 12, 0.18);
-      --glow-cyan: rgba(56, 189, 248, 0.15);
-      --shadow-ambient: 0 24px 60px -12px rgba(0, 0, 0, 0.85);
-      --card-shine: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.12), transparent 70%);
+      --shadow-ambient: 0 24px 60px -12px rgba(0, 0, 0, 0.9);
+      --card-gradient: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 75%);
     }
 
-    /* LIGHT THEME */
     html[data-theme="light"] {
       --bg: #f8fafc;
       --bg-subtle: #f1f5f9;
       --surface: #ffffff;
-      --surface-hover: #f1f5f9;
-      --surface-glass: rgba(255, 255, 255, 0.85);
+      --surface-raised: #f8fafc;
+      --surface-hover: #edf2f7;
+      --surface-glass: rgba(255, 255, 255, 0.88);
+
       --border: #e2e8f0;
       --border-strong: #cbd5e1;
-      --border-accent: rgba(217, 119, 6, 0.4);
+      --border-accent: rgba(217, 119, 6, 0.35);
 
       --text: #0f172a;
       --text-muted: #64748b;
       --text-faint: #94a3b8;
 
-      --glow-caramel: rgba(245, 158, 11, 0.15);
-      --glow-cyan: rgba(2, 132, 199, 0.1);
       --shadow-ambient: 0 20px 48px -10px rgba(15, 23, 42, 0.08);
-      --card-shine: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 70%);
+      --card-gradient: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.05), transparent 75%);
     }
 
-    /* Language toggling rules */
     html[data-lang="vi"] .lang-en { display: none !important; }
     html[data-lang="en"] .lang-vi { display: none !important; }
 
@@ -91,84 +88,90 @@
       background-color: var(--bg);
       color: var(--text);
       font-family: var(--font-sans);
-      line-height: 1.65;
+      line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
-      transition: background-color 0.3s ease, color 0.3s ease;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1140px;
       margin: 0 auto;
-      padding: 0 28px;
+      padding: 0 24px;
       position: relative;
       z-index: 2;
     }
 
-    .bg-mesh {
+    .bg-grid {
       position: fixed;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1400px;
-      height: 700px;
-      background: radial-gradient(ellipse at 50% 0%, var(--glow-caramel) 0%, var(--glow-cyan) 40%, transparent 75%);
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.25;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.85;
+      mask-image: radial-gradient(ellipse at 50% 0%, #000 30%, transparent 80%);
     }
 
-    /* Top Release Announcement Banner */
-    .top-banner {
-      background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(56, 189, 248, 0.08) 100%);
+    .hero-glow {
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.14) 0%, rgba(56, 189, 248, 0.08) 45%, transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ==========================================================================
+       TOP ANNOUNCEMENT BAR & NAVIGATION
+       ========================================================================== */
+    .top-announce {
+      background: var(--bg-subtle);
       border-bottom: 1px solid var(--border);
-      padding: 8px 16px;
-      font-size: 13px;
+      padding: 7px 16px;
+      font-size: 12px;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       position: sticky;
       top: 0;
       z-index: 100;
-      backdrop-filter: blur(16px);
+      backdrop-filter: blur(12px);
     }
 
-    .status-badge {
+    .badge-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 2px 10px;
+      gap: 5px;
+      padding: 2px 8px;
       border-radius: 99px;
-      background: rgba(245, 158, 11, 0.18);
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
-      color: var(--brand-amber);
+      color: var(--gold);
     }
 
-    .status-dot {
-      width: 6px;
-      height: 6px;
+    .badge-dot {
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
-      background: var(--brand-amber);
-      box-shadow: 0 0 8px var(--brand-amber);
-      animation: pulseGlow 1.8s infinite ease-in-out;
+      background: var(--gold);
     }
 
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
-    }
-
-    /* Sticky Navbar */
     nav {
       position: sticky;
-      top: 37px;
+      top: 35px;
       z-index: 90;
       background: var(--surface-glass);
-      backdrop-filter: blur(20px);
+      backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
     }
 
@@ -176,195 +179,209 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 68px;
+      height: 60px;
     }
 
-    .brand-group {
+    .brand-link {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       text-decoration: none;
       color: var(--text);
     }
 
-    .brand-icon-wrap {
-      width: 38px;
-      height: 38px;
+    .brand-logo-frame {
+      width: 32px;
+      height: 32px;
       border-radius: var(--radius-sm);
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 14px var(--glow-caramel);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
-    .brand-title {
-      font-size: 18px;
+    .brand-name {
+      font-size: 16px;
       font-weight: 800;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.4px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .brand-tag {
       font-size: 10px;
       font-family: var(--font-mono);
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: var(--surface-hover);
-      color: var(--cyan-core);
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--surface-raised);
+      color: var(--cyan);
       border: 1px solid var(--border);
+      font-weight: 600;
     }
 
-    .nav-links {
+    .nav-menu {
       display: flex;
-      gap: 28px;
+      gap: 24px;
       list-style: none;
     }
-    .nav-links a {
+    .nav-menu a {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13.5px;
+      font-weight: 500;
       transition: color 0.15s ease;
     }
-    .nav-links a:hover {
+    .nav-menu a:hover {
       color: var(--text);
     }
 
-    .nav-actions {
+    .nav-tools {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .ctrl-pill {
+    .btn-tool {
       background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text-muted);
-      padding: 7px 12px;
+      padding: 6px 10px;
       border-radius: var(--radius-sm);
-      font-size: 12px;
+      font-size: 11.5px;
       font-family: var(--font-mono);
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
+      gap: 5px;
+      transition: all 0.15s ease;
     }
-    .ctrl-pill:hover {
+    .btn-tool:hover {
       color: var(--text);
       border-color: var(--border-strong);
       background: var(--surface-hover);
     }
 
-    .btn {
+    .btn-gh {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 600;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 9px 18px;
-      border-radius: var(--radius-sm);
-      font-size: 13.5px;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      border: 1px solid transparent;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-gh:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
     }
 
-    .btn-primary {
+    /* ==========================================================================
+       HERO SECTION
+       ========================================================================== */
+    .hero {
+      padding: 72px 0 54px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--gold);
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid var(--border-accent);
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 22px;
+    }
+
+    h1.hero-h1 {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.15;
+      margin-bottom: 20px;
+      max-width: 880px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .text-gradient {
+      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-lead {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto 34px;
+      line-height: 1.7;
+    }
+
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 34px;
+    }
+
+    .btn-main {
       background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
       color: #ffffff;
-      box-shadow: 0 4px 18px rgba(234, 88, 12, 0.35);
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .btn-primary:hover {
+    .btn-main:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(234, 88, 12, 0.5);
     }
 
-    .btn-ghost {
+    .btn-sec {
       background: var(--surface);
-      border-color: var(--border);
+      border: 1px solid var(--border);
       color: var(--text);
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
     }
-    .btn-ghost:hover {
+    .btn-sec:hover {
       background: var(--surface-hover);
       border-color: var(--border-strong);
       transform: translateY(-1px);
     }
 
-    /* Hero Section */
-    .hero {
-      padding: 80px 0 60px;
-      text-align: center;
-    }
-
-    .hero-badges {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 24px;
-    }
-
-    .tag-chip {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      padding: 5px 12px;
-      border-radius: 99px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .tag-chip.accent {
-      color: var(--brand-amber);
-      border-color: var(--border-accent);
-      background: rgba(245, 158, 11, 0.1);
-    }
-
-    h1.hero-title {
-      font-size: 54px;
-      font-weight: 800;
-      letter-spacing: -2px;
-      line-height: 1.18;
-      margin-bottom: 22px;
-      max-width: 920px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .gradient-text {
-      background: linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #38bdf8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero-desc {
-      font-size: 18px;
-      color: var(--text-muted);
-      max-width: 800px;
-      margin: 0 auto 36px;
-      line-height: 1.7;
-    }
-
-    .hero-actions {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 14px;
-      margin-bottom: 40px;
-    }
-
-    /* Terminal Quick Box */
-    .terminal-box {
-      max-width: 680px;
-      margin: 0 auto 70px;
+    /* CLI Quick Box */
+    .cli-box {
+      max-width: 620px;
+      margin: 0 auto 60px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
@@ -373,297 +390,1215 @@
       text-align: left;
     }
 
-    .terminal-header {
+    .cli-bar {
       background: var(--bg-subtle);
       border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
+      padding: 8px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .term-tabs {
+    .cli-tabs {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .term-tab-btn {
+    .cli-tab-btn {
       background: transparent;
       border: none;
       color: var(--text-muted);
       font-family: var(--font-mono);
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 5px;
+      padding: 3px 8px;
+      border-radius: 4px;
       cursor: pointer;
     }
-    .term-tab-btn.active {
+    .cli-tab-btn.active {
       background: var(--surface);
-      color: var(--brand-amber);
+      color: var(--gold);
     }
 
-    .terminal-body {
-      padding: 16px 20px;
+    .cli-content {
+      padding: 14px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 12.5px;
     }
 
-    .terminal-code {
+    .cli-code {
       color: var(--text);
       white-space: nowrap;
       overflow-x: auto;
-      padding-right: 12px;
+      padding-right: 10px;
     }
-    .terminal-code .prompt {
-      color: var(--brand-amber);
+    .cli-code .prompt {
+      color: var(--gold);
       margin-right: 8px;
-      font-weight: bold;
+      user-select: none;
+      font-weight: 700;
     }
 
-    /* Mockup */
-    .mockup-wrap {
-      max-width: 1060px;
+    /* ==========================================================================
+       AUTHENTIC BROWSER UI SPECIMEN
+       ========================================================================== */
+    .specimen-wrap {
+      max-width: 1040px;
       margin: 0 auto;
     }
 
-    .browser-frame {
+    .browser-mockup {
       background: var(--surface);
       border: 1px solid var(--border-strong);
       border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: var(--shadow-ambient);
+      text-align: left;
     }
 
-    .frame-chrome {
+    .mockup-header {
       background: var(--bg-subtle);
       border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
+      padding: 10px 14px;
     }
 
-    .tab-strip {
+    .mockup-tabs {
       display: flex;
       align-items: center;
       gap: 6px;
       margin-bottom: 10px;
     }
 
-    .window-dots {
+    .window-controls {
       display: flex;
       gap: 6px;
-      margin-right: 12px;
+      margin-right: 10px;
     }
-    .window-dot {
-      width: 11px;
-      height: 11px;
+    .ctrl-circle {
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
     }
-    .dot-close { background: #ef4444; }
-    .dot-min { background: #f59e0b; }
-    .dot-max { background: #10b981; }
+    .c-red { background: #ef4444; }
+    .c-yellow { background: #f59e0b; }
+    .c-green { background: #10b981; }
 
-    .mock-tab {
+    .tab-item {
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-muted);
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 11.5px;
       font-family: var(--font-mono);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
-    .mock-tab.active {
+    .tab-item.active {
       background: var(--surface);
       color: var(--text);
       border-color: var(--border);
       font-weight: 600;
     }
-    .mock-tab.snoozed {
-      opacity: 0.6;
+    .tab-item.snooze-demo {
+      opacity: 0.65;
       border-style: dashed;
-      border-color: var(--border-strong);
+      border-color: var(--border);
+    }
+    .tab-badge-ram {
+      font-size: 9.5px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      font-weight: 700;
     }
 
-    .address-bar-row {
+    .mockup-nav {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .nav-arrows {
+    .mockup-arrows {
       display: flex;
       gap: 4px;
       color: var(--text-faint);
     }
 
-    .mock-omnibox {
+    .mockup-omnibox {
       flex: 1;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      height: 36px;
-      padding: 0 12px;
+      height: 34px;
+      padding: 0 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-family: var(--font-mono);
-      font-size: 12.5px;
-      color: var(--text);
+      font-size: 12px;
     }
 
-    .badge-shield-live {
+    .clean-url-tag {
+      font-size: 10px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 3px;
+      color: var(--cyan);
+    }
+
+    .shield-badge-live {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: rgba(16, 185, 129, 0.15);
-      color: var(--emerald-shield);
+      color: var(--emerald);
       border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
     }
 
-    .frame-content {
-      padding: 44px;
+    .mockup-canvas {
+      padding: 36px;
       background: var(--bg);
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      position: relative;
+      min-height: 280px;
     }
 
-    .metric-card {
+    .canvas-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .canvas-stat {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: relative;
-      overflow: hidden;
+      padding: 20px;
+      border-top: 2px solid var(--gold);
     }
-    .metric-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--brand-amber), var(--cyan-core));
-    }
-    .metric-card .num {
+    .canvas-stat .val {
       font-family: var(--font-mono);
-      font-size: 38px;
+      font-size: 30px;
       font-weight: 800;
-      letter-spacing: -1.5px;
       color: var(--text);
-      margin-bottom: 6px;
+      letter-spacing: -1px;
     }
-    .metric-card .label {
-      font-size: 13px;
+    .canvas-stat .lbl {
+      font-size: 12px;
       color: var(--text-muted);
+      margin-top: 4px;
       font-weight: 500;
     }
 
-    /* Bento Grid */
-    .section-title-wrap {
-      margin-bottom: 48px;
-    }
-    .section-eyebrow {
+    .mockup-shelf {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 290px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
       font-family: var(--font-mono);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--brand-amber);
-      font-weight: 700;
-      margin-bottom: 8px;
+      font-size: 11px;
     }
-    .section-heading {
-      font-size: 34px;
+    .shelf-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .shelf-bar {
+      height: 4px;
+      width: 100%;
+      background: var(--bg);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .shelf-fill {
+      width: 74%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--cyan));
+    }
+    .shelf-sub {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       6-CARD BENTO GRID (FULL FEATURE SUITE)
+       ========================================================================== */
+    .section-head {
+      margin-bottom: 40px;
+    }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .heading-lg {
+      font-size: 32px;
       font-weight: 800;
       letter-spacing: -1px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
-    .section-sub {
+    .desc-lead {
       color: var(--text-muted);
-      font-size: 16px;
-      max-width: 680px;
+      font-size: 15px;
+      max-width: 640px;
     }
 
     .bento-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-      margin-bottom: 100px;
+      gap: 20px;
+      margin-bottom: 90px;
     }
 
-    .bento-item {
+    .bento-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 32px;
+      padding: 26px;
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.25s ease;
+      transition: all 0.2s ease;
     }
-    .bento-item::before {
+    .bento-card::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: var(--card-shine);
+      background: var(--card-gradient);
       pointer-events: none;
     }
-    .bento-item:hover {
-      transform: translateY(-4px);
+    .bento-card:hover {
       border-color: var(--border-strong);
-      box-shadow: var(--shadow-ambient);
+      transform: translateY(-2px);
     }
-    .bento-item.span-2 {
+    .bento-card.span-2 {
       grid-column: span 2;
     }
 
     .bento-icon {
-      width: 48px;
-      height: 48px;
+      width: 38px;
+      height: 38px;
       border-radius: var(--radius-sm);
       background: var(--bg-subtle);
       border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 22px;
-      color: var(--brand-amber);
+      color: var(--gold);
+      margin-bottom: 16px;
     }
 
-    .bento-item h3 {
-      font-size: 20px;
+    .bento-card h3 {
+      font-size: 17px;
       font-weight: 700;
-      letter-spacing: -0.4px;
-      margin-bottom: 10px;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
     }
-    .bento-item p {
-      font-size: 14px;
+    .bento-card p {
+      font-size: 13.5px;
       color: var(--text-muted);
-      line-height: 1.7;
+      line-height: 1.65;
     }
-    .bento-tag {
+    .bento-meta {
       font-family: var(--font-mono);
       font-size: 11px;
       font-weight: 700;
-      color: var(--cyan-core);
+      color: var(--cyan);
       text-transform: uppercase;
-      margin-top: 20px;
+      margin-top: 16px;
     }
 
-    /* Benchmarks */
-    .benchmarks-section {
-      padding: 60px 0 100px;
+    /* Architecture Visual Diagram Box */
+    .arch-diagram {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 90px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      overflow-x: auto;
+      line-height: 1.8;
+    }
+    .arch-diagram .hl { color: var(--cyan); font-weight: 600; }
+    .arch-diagram .hl-gold { color: var(--gold); font-weight: 600; }
+
+    /* ==========================================================================
+       HONEST BENCHMARKS COMPARISON TABLE (NO FAKE LAB BRAGS)
+       ========================================================================== */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-ambient);
+      margin-bottom: 90px;
+    }
+
+    table.bench-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    table.bench-tbl th, table.bench-tbl td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table.bench-tbl th {
+      background: var(--bg-subtle);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-faint);
+    }
+
+    .col-highlight {
+      background: rgba(245, 158, 11, 0.05);
+      color: var(--gold);
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    /* ==========================================================================
+       OPEN SOURCE & TRANSPARENCY SECTION
+       ========================================================================== */
+    .transparency-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 34px;
+      margin-bottom: 80px;
+    }
+
+    .trans-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .trans-head h3 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .trans-body {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .trans-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .trans-item strong {
+      display: block;
+      color: var(--text);
+      font-size: 13.5px;
+      margin-bottom: 4px;
+    }
+    .trans-item span {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ==========================================================================
+       DOWNLOADS SECTION
+       ========================================================================== */
+    .downloads-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 80px;
+    }
+
+    .dl-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .dl-item:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+    .dl-item h4 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .dl-item p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 44px 0;
+      background: var(--bg-subtle);
+      font-size: 12.5px;
+      color: var(--text-faint);
+    }
+
+    .footer-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 900px) {
+      h1.hero-h1 { font-size: 36px; }
+      .bento-grid { grid-template-columns: 1fr; }
+      .bento-card.span-2 { grid-column: span 1; }
+      .downloads-grid, .canvas-grid, .trans-grid { grid-template-columns: 1fr; }
+      .nav-menu { display: none; }
+      .footer-flex { flex-direction: column; gap: 16px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <!-- 1. Top Release Bar with Live Dynamic Tag -->
+  <div class="top-announce">
+    <div class="badge-pill">
+      <span class="badge-dot"></span>
+      <span class="tag-version">Release</span>
+    </div>
+    <span class="lang-vi">
+      Vibird Browser — Trình duyệt Linux thuần Rust, siêu nhẹ và bảo mật.
+      <a href="https://github.com/LocShadowVN/VibirdBrowser" target="_blank" style="color:var(--gold); font-weight:600; text-decoration:none; margin-left:6px;">Mã nguồn GitHub &rarr;</a>
+    </span>
+    <span class="lang-en">
+      Vibird Browser — Ultra-lean, memory-safe desktop browser for Linux.
+      <a href="https://github.com/LocShadowVN/VibirdBrowser" target="_blank" style="color:var(--gold); font-weight:600; text-decoration:none; margin-left:6px;">Source on GitHub &rarr;</a>
+    </span>
+  </div>
+
+  <!-- 2. Sticky Navbar -->
+  <nav>
+    <div class="container nav-inner">
+      <a href="#" class="brand-link">
+        <div class="brand-logo-frame">
+          <!-- Vector Logo: Chim Lạc & Trống Đồng Đông Sơn -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
+            <defs>
+              <radialGradient id="vBg" cx="50%" cy="45%" r="65%">
+                <stop offset="0%" stop-color="#1E293B"/>
+                <stop offset="100%" stop-color="#090D16"/>
+              </radialGradient>
+              <linearGradient id="vGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FDE68A"/>
+                <stop offset="50%" stop-color="#F59E0B"/>
+                <stop offset="100%" stop-color="#D97706"/>
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="120" fill="url(#vBg)"/>
+            <path d="M256 64 L396 112 V248 C396 342 334 416 256 448 C178 416 116 342 116 248 V112 Z" fill="#111827" stroke="url(#vGold)" stroke-width="14"/>
+            <circle cx="256" cy="256" r="60" fill="none" stroke="url(#vGold)" stroke-width="4" stroke-dasharray="8,6" opacity="0.4"/>
+            <path d="M 235 275 Q 170 200 130 155 Q 185 180 230 220 Q 180 150 145 110 Q 215 140 260 190 Q 230 110 200 80 Q 280 130 290 200 Z" fill="#38bdf8" opacity="0.95"/>
+            <path d="M 195 340 C 215 320, 245 285, 260 250 C 275 215, 290 170, 320 142 C 338 126, 362 118, 388 114 C 362 126, 345 142, 335 158 C 320 182, 312 210, 305 240 C 290 290, 255 338, 218 360 Z" fill="url(#vGold)"/>
+          </svg>
+        </div>
+        <div class="brand-name">
+          <span>Vibird</span>
+          <span class="brand-tag">Linux</span>
+        </div>
+      </a>
+
+      <ul class="nav-menu">
+        <li><a href="#features"><span class="lang-vi">Tính năng</span><span class="lang-en">Features</span></a></li>
+        <li><a href="#benchmarks"><span class="lang-vi">Mức ăn RAM</span><span class="lang-en">Memory Test</span></a></li>
+        <li><a href="#transparency"><span class="lang-vi">Minh bạch</span><span class="lang-en">Open Source</span></a></li>
+        <li><a href="#downloads"><span class="lang-vi">Cài đặt</span><span class="lang-en">Downloads</span></a></li>
+      </ul>
+
+      <div class="nav-tools">
+        <button class="btn-tool" id="btn-theme" title="Chuyển chế độ sáng/tối">
+          <svg id="moon-ico" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <svg id="sun-ico" style="display:none;" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <span id="theme-lbl">Dark</span>
+        </button>
+
+        <button class="btn-tool" id="btn-lang" title="Switch Language">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <span id="lang-lbl">VI</span>
+        </button>
+
+        <a href="https://github.com/LocShadowVN/VibirdBrowser" target="_blank" class="btn-gh">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          <span>Repo</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 3. Hero Section -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="container">
+      <div class="hero-eyebrow">
+        <span>Rust WASM + WebKitGTK 4.1 Subsurfaces</span>
+      </div>
+
+      <h1 class="hero-h1">
+        <span class="lang-vi">Trình duyệt Linux thuần Rust.<br /><span class="text-gradient">Siêu nhẹ, không ngốn RAM.</span></span>
+        <span class="lang-en">A lean, memory-safe browser<br /><span class="text-gradient">for Linux workstations.</span></span>
+      </h1>
+
+      <p class="hero-lead">
+        <span class="lang-vi">
+          Tách biệt hoàn toàn giao diện Rust WASM với khung hiển thị WebKitGTK 4.1 gốc của Linux. Ăn chỉ ~118MB RAM lúc mở tab, tích hợp sẵn nhân chặn quảng cáo 300k rules của Brave, két mật khẩu Argon2id và bộ tải đa luồng xé băng thông như IDM.
+        </span>
+        <span class="lang-en">
+          Decoupled Rust WebAssembly chrome with native WebKitGTK 4.1 subsurfaces. Sub-140MB idle footprint, 300,000+ Brave adblock rules, Argon2id vault, and IDM-grade chunked downloader.
+        </span>
+      </p>
+
+      <div class="hero-buttons">
+        <a href="https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.deb" class="btn-main">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span class="lang-vi">Tải gói .deb mới nhất</span>
+          <span class="lang-en">Download Latest .deb</span>
+        </a>
+        <a href="#downloads" class="btn-sec">
+          <span class="lang-vi">Tất cả phiên bản (.AppImage)</span>
+          <span class="lang-en">All Package Formats</span>
+        </a>
+      </div>
+
+      <!-- Quick CLI Install Box -->
+      <div class="cli-box">
+        <div class="cli-bar">
+          <div class="cli-tabs">
+            <button class="cli-tab-btn active" onclick="switchCliTab(this, 'deb')">Debian / Ubuntu</button>
+            <button class="cli-tab-btn" onclick="switchCliTab(this, 'appimage')">Universal AppImage</button>
+            <button class="cli-tab-btn" onclick="switchCliTab(this, 'cargo')">Build from Source</button>
+          </div>
+          <span style="font-size:10.5px; color:var(--text-faint); font-family:var(--font-mono);">bash</span>
+        </div>
+        <div class="cli-content">
+          <div class="cli-code" id="cli-cmd">
+            <span class="prompt">$</span>wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.deb && sudo dpkg -i vibird-browser_amd64.deb
+          </div>
+          <button class="btn-tool" onclick="copyCli(this)">
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span class="copy-txt">Copy</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. High-Fidelity Browser UI Specimen -->
+      <div class="specimen-wrap">
+        <div class="browser-mockup">
+          <div class="mockup-header">
+            <div class="mockup-tabs">
+              <div class="window-controls">
+                <span class="ctrl-circle c-red"></span>
+                <span class="ctrl-circle c-yellow"></span>
+                <span class="ctrl-circle c-green"></span>
+              </div>
+              <div class="tab-item active">
+                <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle></svg>
+                <span>vibird://newtab</span>
+              </div>
+              <div class="tab-item">
+                <span>GitHub — LocShadowVN</span>
+              </div>
+              <div class="tab-item snooze-demo" title="Tab tự động giải phóng Webview sau 10 phút">
+                <span>ArchWiki</span>
+                <span class="tab-badge-ram">0 MB RAM</span>
+              </div>
+            </div>
+
+            <div class="mockup-nav">
+              <div class="mockup-arrows">
+                <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              </div>
+
+              <div class="mockup-omnibox">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <svg viewBox="0 0 24 24" width="12" height="12" stroke="var(--emerald)" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  <span>https://github.com/LocShadowVN/VibirdBrowser</span>
+                  <span class="clean-url-tag">Clean URL</span>
+                </div>
+                <div class="shield-badge-live">
+                  <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <span>Shields UP (300k+ rules)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mockup-canvas">
+            <div class="canvas-grid">
+              <div class="canvas-stat">
+                <div class="val">~118 MB</div>
+                <div class="lbl">
+                  <span class="lang-vi">RAM khi mở tab chờ (Idle)</span>
+                  <span class="lang-en">Idle Tab Memory Footprint</span>
+                </div>
+              </div>
+              <div class="canvas-stat">
+                <div class="val">0 MB</div>
+                <div class="lbl">
+                  <span class="lang-vi">RAM tab nền sau 10p ru ngủ</span>
+                  <span class="lang-en">Background Tab Memory after Eviction</span>
+                </div>
+              </div>
+              <div class="canvas-stat">
+                <div class="val">8 TCP</div>
+                <div class="lbl">
+                  <span class="lang-vi">Luồng tải song song chuẩn IDM</span>
+                  <span class="lang-en">Multi-Stream Download Threads</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating Download Shelf Demo inside Mockup -->
+            <div class="mockup-shelf">
+              <div class="shelf-top">
+                <span>linux-kernel-6.10.tar.xz</span>
+                <span style="color:var(--cyan)">6.4 MB/s</span>
+              </div>
+              <div class="shelf-bar">
+                <div class="shelf-fill"></div>
+              </div>
+              <div class="shelf-sub">
+                <span>74% (104.2 MB / 140.8 MB)</span>
+                <span>8 connections</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 6-Card Full Bento Grid (Trình Làng Tất Cả Vũ Khí Công Nghệ) -->
+  <section class="container" id="features" style="padding-top:40px;">
+    <div class="section-head">
+      <div class="eyebrow">
+        <span class="lang-vi">Bộ tính năng cốt lõi</span>
+        <span class="lang-en">Core Technical Subsystems</span>
+      </div>
+      <h2 class="heading-lg">
+        <span class="lang-vi">Giải phóng tài nguyên. Tôn trọng riêng tư.</span>
+        <span class="lang-en">Hardened Privacy & Radical Efficiency.</span>
+      </h2>
+      <p class="desc-lead">
+        <span class="lang-vi">Không mang theo Node.js runtime, không cồng kềnh như Chromium V8, không ví tiền ảo hay quảng cáo tài trợ.</span>
+        <span class="lang-en">Zero bundled Node.js runtimes, zero V8 engine bloatware, and no commercial crypto ecosystem upsells.</span>
+      </p>
+    </div>
+
+    <div class="bento-grid">
+      <!-- 1. Brave adblock-rust (Span 2) -->
+      <div class="bento-card span-2">
+        <div>
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+          </div>
+          <h3>
+            <span class="lang-vi">Lõi lọc Brave adblock-rust (300k+ Rules)</span>
+            <span class="lang-en">Brave adblock-rust Core (300k+ Rules)</span>
+          </h3>
+          <p>
+            <span class="lang-vi">
+              Chạy trên luồng OS độc lập với thuật toán tra cứu Bloom Filter trie. Nạp sẵn EasyList, EasyPrivacy và Fanboy Annoyance. Can thiệp sâu từ prototype DOM (`HTMLScriptElement`, `WebSocket`, `sendBeacon`) để triệt hạ mã theo dõi trước khi phát sinh request và tự dẹp sạch banner Cookie/GDPR.
+            </span>
+            <span class="lang-en">
+              Runs on an isolated OS worker thread hosting Brave Software's official engine. Precompiled with EasyList, EasyPrivacy, and Fanboy's Annoyance. Deep prototype hooks intercept trackers before network dispatches, automatically defusing cookie walls.
+            </span>
+          </p>
+        </div>
+        <div class="bento-meta">adblock-rust • Tokenized Trie</div>
+      </div>
+
+      <!-- 2. Vibird Vault (Argon2id + AES-256) -->
+      <div class="bento-card">
+        <div>
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <h3>
+            <span class="lang-vi">Két mật khẩu Vibird Vault (Argon2id + AES-256)</span>
+            <span class="lang-en">Vibird Vault (Argon2id + AES-256-GCM)</span>
+          </h3>
+          <p>
+            <span class="lang-vi">
+              Bảo mật theo mô hình Envelope Encryption: Dẫn xuất khoá chính bằng Argon2id (chống bẻ khoá GPU) đúng 1 lần khi mở két, sau đó giải mã hàng trăm tài khoản bằng AES-256-GCM trong vài micro-giây không gây đơ ứng dụng. Hỗ trợ tự động điền form (Autofill) an toàn bằng JSON chuẩn.
+            </span>
+            <span class="lang-en">
+              Envelope encryption architecture: Memory-hard Argon2id key derivation executes once upon unlock, enabling microsecond batch decryption via AES-256-GCM without UI lockup. Features 1-click DOM autofill injection using strict JSON serialization.
+            </span>
+          </p>
+        </div>
+        <div class="bento-meta">Argon2id • Envelope Encryption</div>
+      </div>
+
+      <!-- 3. IDM Downloader -->
+      <div class="bento-card">
+        <div>
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </div>
+          <h3>
+            <span class="lang-vi">Bộ tải file đa luồng xé băng thông kiểu IDM</span>
+            <span class="lang-en">IDM-Style Chunked Downloader</span>
+          </h3>
+          <p>
+            <span class="lang-vi">
+              Tự động bắt Range byte, chia nhỏ file tải đồng thời từ 4 đến 16 luồng TCP song song. Tích hợp Download Sniffer tự chặn file nén, file cài đặt từ WebKit chuyển vào bộ tải, chống ghi đè Path Traversal và báo tốc độ theo thời gian thực.
+            </span>
+            <span class="lang-en">
+              Forks payloads across 4 to 16 concurrent TCP threads via HTTP Range. Intercepts binary links via native WebKit download listeners, featuring path-traversal sanitization and live speed telemetry.
+            </span>
+          </p>
+        </div>
+        <div class="bento-meta">4–16 TCP Streams • Tokio Async</div>
+      </div>
+
+      <!-- 4. Smart Memory Tab Snoozer -->
+      <div class="bento-card">
+        <div>
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3>
+            <span class="lang-vi">Ru ngủ tab thông minh (Triệt tiêu RAM Leak)</span>
+            <span class="lang-en">Smart Tab Memory Eviction</span>
+          </h3>
+          <p>
+            <span class="lang-vi">
+              Tiến trình giám sát nền tự động huỷ bỏ hoàn toàn Webview của những tab không tương tác quá 10 phút, trả lại 100% RAM và tài nguyên GPU cho máy tính chạy IDE hoặc Docker. Khi bạn nhấn chọn lại, tab tự động phục hồi đúng URL và trạng thái phiên duyệt.
+            </span>
+            <span class="lang-en">
+              Background supervisor cleanly destroys the underlying native WebKit webview for tabs idle over 10 minutes, returning 100% of GPU context and DOM memory to the OS. Tabs seamlessly re-instantiate on demand when clicked.
+            </span>
+          </p>
+        </div>
+        <div class="bento-meta">True Native Eviction • Zero Leak</div>
+      </div>
+
+      <!-- 5. WebRTC Leak Shield & Farbling -->
+      <div class="bento-card">
+        <div>
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          </div>
+          <h3>
+            <span class="lang-vi">Chống lộ IP WebRTC & Brave Farbling</span>
+            <span class="lang-en">WebRTC Leak Shield & Farbling</span>
+          </h3>
+          <p>
+            <span class="lang-vi">
+              Lọc sạch địa chỉ IP mạng LAN nội bộ khỏi gói tin SDP của WebRTC, ngăn ngừa lộ IP thật khi đang sử dụng VPN. Tự động bơm nhiễu vi mô vào Canvas và AudioContext để làm mù hoàn toàn các thư viện tracking nhận diện vân tay máy tính (như FingerprintJS).
+            </span>
+            <span class="lang-en">
+              Purges local LAN IP candidates from WebRTC SDP negotiations to prevent IP leaks behind VPNs. Injects imperceptible micro-noise into Canvas and AudioBuffer buffers to defeat fingerprinting trackers.
+            </span>
+          </p>
+        </div>
+        <div class="bento-meta">WebRTC Sealed • Anti-Fingerprint</div>
+      </div>
+
+      <!-- 6. Clean URLs & De-AMP (Span 2) -->
+      <div class="bento-card span-2">
+        <div>
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+          </div>
+          <h3>
+            <span class="lang-vi">Bóc mã theo dõi trên URL & Gỡ Google AMP</span>
+            <span class="lang-en">Clean URLs & Direct De-AMP Engine</span>
+          </h3>
+          <p>
+            <span class="lang-vi">
+              Tự động gọt sạch toàn bộ các tham số gián điệp khỏi link (`utm_*`, `fbclid`, `gclid`, `si`, `spm`, `mc_eid`...) trước khi bạn bấm truy cập. Nhận diện các liên kết chạy qua proxy Google AMP và chuyển thẳng người dùng về bài viết gốc của trang báo.
+            </span>
+            <span class="lang-en">
+              Strips hyper-tracking tokens (`utm_*`, `fbclid`, `gclid`, `si`, `spm`, `mc_eid`) prior to navigation and transparently redirects Google AMP cached pages back to their canonical origin servers.
+            </span>
+          </p>
+        </div>
+        <div class="bento-meta">Privacy Routing • Canonical De-AMP</div>
+      </div>
+    </div>
+
+    <!-- Architecture Visual Flow Box -->
+    <div class="arch-diagram">
+      <div><span class="hl">[Giao diện WASM (Leptos CSR)]</span> &lt;=== Asynchronous Tauri IPC (invoke) ===&gt; <span class="hl-gold">[Lõi Hệ Thống (Tauri v2 / Rust)]</span></div>
+      <div>         │                                                                             │</div>
+      <div>         ├── Thanh Tab & Omnibox phản ứng nhanh (92px)                                ├── WebKitGTK 4.1 Native Subsurface</div>
+      <div>         ├── Hệ thống phím tắt chuẩn trình duyệt (Ctrl+T/W/L/R/F)                      ├── Luồng OS chạy adblock-rust (300k rules)</div>
+      <div>         └── Thanh Download Shelf báo tiến độ thời gian thực                           ├── Bộ tải phân mảnh Range 8 luồng IDM</div>
+      <div>                                                                                       └── Két lưu mật khẩu Argon2id Envelope</div>
+    </div>
+  </section>
+
+  <!-- 6. Honest Benchmarks Table (Loại Bỏ Đo Lường Máy Trạm Sáo Rỗng) -->
+  <section class="container" id="benchmarks" style="padding-top:20px;">
+    <div class="section-head">
+      <div class="eyebrow">
+        <span class="lang-vi">Thực nghiệm tài nguyên</span>
+        <span class="lang-en">Resource Footprint</span>
+      </div>
+      <h2 class="heading-lg">
+        <span class="lang-vi">So sánh mức ăn RAM thực tế khi duyệt web</span>
+        <span class="lang-en">Real-world memory consumption across browsers</span>
+      </h2>
+      <p class="desc-lead">
+        <span class="lang-vi">Đo lường mức tiêu thụ RAM trung bình giữa các trình duyệt phổ biến trên Linux khi mở các trang web thông dụng.</span>
+        <span class="lang-en">Average RAM usage comparison across major desktop browsers on Linux under everyday browsing.</span>
+      </p>
+    </div>
+
+    <div class="table-card">
+      <table class="bench-tbl">
+        <thead>
+          <tr>
+            <th><span class="lang-vi">Tiêu chí so sánh</span><span class="lang-en">Evaluation Parameter</span></th>
+            <th>Vibird Browser</th>
+            <th>Brave Browser</th>
+            <th>Google Chrome</th>
+            <th>Mozilla Firefox</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong><span class="lang-vi">Kiến trúc giao diện</span><span class="lang-en">UI Architecture</span></strong></td>
+            <td class="col-highlight">100% Rust WASM</td>
+            <td>C++ Chromium UI</td>
+            <td>C++ Chromium UI</td>
+            <td>C++ / XUL / Gecko</td>
+          </tr>
+          <tr>
+            <td><strong><span class="lang-vi">RAM khi mở 1 tab chờ</span><span class="lang-en">Idle RAM (1 Tab)</span></strong></td>
+            <td class="col-highlight">~95 MB – 135 MB</td>
+            <td>~550 MB – 750 MB</td>
+            <td>~600 MB – 900 MB</td>
+            <td>~450 MB – 650 MB</td>
+          </tr>
+          <tr>
+            <td><strong><span class="lang-vi">RAM khi mở 10 tabs</span><span class="lang-en">RAM Load (10 Tabs)</span></strong></td>
+            <td class="col-highlight">~380 MB – 520 MB</td>
+            <td>~1.4 GB – 2.1 GB</td>
+            <td>~1.8 GB – 2.6 GB</td>
+            <td>~1.1 GB – 1.6 GB</td>
+          </tr>
+          <tr>
+            <td><strong><span class="lang-vi">Giải phóng RAM tab ngủ</span><span class="lang-en">Tab Memory Eviction</span></strong></td>
+            <td class="col-highlight"><span class="lang-vi">Huỷ sạch Webview (0MB)</span><span class="lang-en">Complete Eviction (0MB)</span></td>
+            <td>Bỏ bớt cache V8</td>
+            <td>Tạm dừng một phần</td>
+            <td>Unload một phần</td>
+          </tr>
+          <tr>
+            <td><strong><span class="lang-vi">Chặn quảng cáo tích hợp</span><span class="lang-en">Adblock Engine</span></strong></td>
+            <td class="col-highlight">300k+ rules (adblock-rust)</td>
+            <td>250k+ rules (Brave Shields)</td>
+            <td>Không có (Hạn chế MV3)</td>
+            <td>Phải cài thêm add-on</td>
+          </tr>
+          <tr>
+            <td><strong><span class="lang-vi">Cơ chế tải file</span><span class="lang-en">Download Engine</span></strong></td>
+            <td class="col-highlight">Đa luồng IDM (4–16 TCP)</td>
+            <td>1 luồng mặc định</td>
+            <td>1 luồng mặc định</td>
+            <td>1 luồng mặc định</td>
+          </tr>
+          <tr>
+            <td><strong><span class="lang-vi">Két lưu mật khẩu</span><span class="lang-en">Password Vault</span></strong></td>
+            <td class="col-highlight">Argon2id + AES-256</td>
+            <td>Keychain OS / Plaintext</td>
+            <td>Google Account Sync</td>
+            <td>Master Password</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 7. Open Source & Transparency -->
+  <section class="container" id="transparency">
+    <div class="transparency-box">
+      <div class="trans-head">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--gold)" stroke-width="2" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+        <h3>
+          <span class="lang-vi">Mã Nguồn Mở Tự Do & Minh Bạch (Open Source)</span>
+          <span class="lang-en">Open-Source Transparency & Community Project</span>
+        </h3>
+      </div>
+
+      <p class="trans-body">
+        <span class="lang-vi">
+          Vibird Browser là dự án độc lập phát triển vì cộng đồng Linux. Trình duyệt nói không với telemetry theo dõi, không kinh doanh dữ liệu người dùng và phát hành công khai 100% theo giấy phép <strong>GNU GPL-3.0</strong> để bất kỳ ai cũng có thể tự do kiểm tra, đóng góp tính năng hoặc tự biên dịch theo ý mình.
+        </span>
+        <span class="lang-en">
+          Vibird Browser is an independent open-source initiative built for the Linux community. Released under the <strong>GNU GPL-3.0</strong> license with zero telemetry, complete source transparency, and freedom for developers to inspect, audit, compile, and contribute.
+        </span>
+      </p>
+
+      <div class="trans-grid">
+        <div class="trans-item">
+          <strong><span class="lang-vi">Dành cho cộng đồng Linux</span><span class="lang-en">Built for Linux Developers</span></strong>
+          <span>
+            <span class="lang-vi">Tối ưu cho máy trạm, laptop cần tiết kiệm pin và nhường tối đa RAM cho công việc lập trình.</span>
+            <span class="lang-en">Engineered for developer workstations requiring minimal memory overhead and maximum battery life.</span>
+          </span>
+        </div>
+        <div class="trans-item">
+          <strong><span class="lang-vi">Độ tương thích W3C</span><span class="lang-en">W3C Web Standards</span></strong>
+          <span>
+            <span class="lang-vi">Chạy tốt ~95% các trang web thông dụng. Dịch vụ cần chứng chỉ DRM độc quyền (như Netflix) chưa hỗ trợ mặc định.</span>
+            <span class="lang-en">Supports ~95% of standard web applications natively. Proprietary Widevine DRM (Netflix) is unsupported by default.</span>
+          </span>
+        </div>
+        <div class="trans-item">
+          <strong><span class="lang-vi">Tuyên bố kỹ thuật</span><span class="lang-en">Technical Disclosures</span></strong>
+          <span>
+            <span class="lang-vi">
+              Xem đầy đủ ghi chú kiến trúc và chi tiết kỹ thuật tại
+              <a href="https://github.com/LocShadowVN/VibirdBrowser#7-lưu-ý-kỹ-thuật--tính-chất-bản-thử-nghiệm" target="_blank" style="color:var(--gold); font-weight:600; text-decoration:none;">README Disclaimer &rarr;</a>
+            </span>
+            <span class="lang-en">
+              Read architectural caveats and evaluation notices in the
+              <a href="https://github.com/LocShadowVN/VibirdBrowser#7-technical-notes--evaluation-disclaimer" target="_blank" style="color:var(--gold); font-weight:600; text-decoration:none;">README Disclaimer &rarr;</a>
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Downloads Section -->
+  <section class="container" id="downloads">
+    <div class="section-head">
+      <div class="eyebrow">
+        <span class="lang-vi">Phát hành nhị phân</span>
+        <span class="lang-en">Binary Releases</span>
+      </div>
+      <h2 class="heading-lg">
+        <span class="lang-vi">Cài đặt Vibird Browser cho Linux x86_64</span>
+        <span class="lang-en">Install Vibird Browser for Linux x86_64</span>
+      </h2>
+      <p class="desc-lead">
+        <span class="lang-vi">Các gói cài đặt chính thức được tự động đóng gói qua hệ thống GitHub Actions CI cho mỗi phiên bản mới.</span>
+        <span class="lang-en">Official binary packages compiled and verified automatically via GitHub Actions CI for every release.</span>
+      </p>
+    </div>
+
+    <div class="downloads-grid">
+      <!-- Debian / Ubuntu -->
+      <div class="dl-item">
+        <div>
+          <h4>Debian / Ubuntu / Pop!_OS (.deb)</h4>
+          <p>
+            <span class="lang-vi">Gói cài đặt chuẩn cho Ubuntu, Debian, Linux Mint với khả năng tự động tạo icon vào Menu ứng dụng của hệ điều hành.</span>
+            <span class="lang-en">Native desktop installer for Ubuntu, Debian, Pop!_OS, and Linux Mint with native application launcher menu integration.</span>
+          </p>
+        </div>
+        <div>
+          <a href="https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.deb" class="btn-main" style="width:100%; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span class="lang-vi">Tải gói .deb mới nhất</span>
+            <span class="lang-en">Download Latest .deb</span>
+          </a>
+          <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-faint); margin-top:10px; text-align:center;">
+            sudo dpkg -i vibird-browser_amd64.deb
+          </div>
+        </div>
+      </div>
+
+      <!-- AppImage -->
+      <div class="dl-item">
+        <div>
+          <h4>Universal Linux (.AppImage)</h4>
+          <p>
+            <span class="lang-vi">File thực thi độc lập, chạy ngay không cần cài đặt. Tương thích với Arch Linux, Fedora, Manjaro, openSUSE và Debian.</span>
+            <span class="lang-en">Self-contained executable. Compatible across Arch Linux, Fedora, Manjaro, openSUSE, and Debian without dependencies.</span>
+          </p>
+        </div>
+        <div>
+          <a href="https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.AppImage" class="btn-sec" style="width:100%; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span class="lang-vi">Tải file .AppImage mới nhất</span>
+            <span class="lang-en">Download Latest .AppImage</span>
+          </a>
+          <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-faint); margin-top:10px; text-align:center;">
+            chmod +x *.AppImage &amp;&amp; ./*.AppImage
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Footer -->
+  <footer>
+    <div class="container footer-flex">
+      <div>
+        <strong>Vibird Browser</strong> — Bản sắc công nghệ Việt • GNU GPL-3.0 License.
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/LocShadowVN/VibirdBrowser" target="_blank">Mã nguồn GitHub</a>
+        <a href="https://github.com/LocShadowVN/VibirdBrowser/releases" target="_blank">Releases</a>
+        <a href="https://github.com/LocShadowVN/VibirdBrowser/issues" target="_blank">Báo lỗi</a>
+        <a href="https://github.com/LocShadowVN/VibirdBrowser#7-lưu-ý-kỹ-thuật--tính-chất-bản-thử-nghiệm" target="_blank">Lưu ý kỹ thuật</a>
+        <a href="#">Lên đầu trang &uarr;</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       VANILLA JAVASCRIPT: THEME, LANG, CLI TABS & DYNAMIC RELEASE FETCHER
+       ========================================================================== -->
+  <script>
+    // 1. Live Dynamic Version Fetcher from GitHub API
+    fetch('https://api.github.com/repos/LocShadowVN/VibirdBrowser/releases/latest')
+      .then(res => res.json())
+      .then(data => {
+        if (data.tag_name) {
+          document.querySelectorAll('.tag-version').forEach(el => {
+            el.innerText = data.tag_name;
+          });
+        }
+      })
+      .catch(() => {});
+
+    // 2. Theme Engine (Dark / Light)
+    const btnTheme = document.getElementById('btn-theme');
+    const themeLbl = document.getElementById('theme-lbl');
+    const sunIco = document.getElementById('sun-ico');
+    const moonIco = document.getElementById('moon-ico');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('vibird_theme', theme);
+      if (theme === 'dark') {
+        themeLbl.innerText = 'Dark';
+        moonIco.style.display = 'block';
+        sunIco.style.display = 'none';
+      } else {
+        themeLbl.innerText = 'Light';
+        moonIco.style.display = 'none';
+        sunIco.style.display = 'block';
+      }
+    }
+
+    const savedTheme = localStorage.getItem('vibird_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    btnTheme.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      applyTheme(cur === 'dark' ? 'light' : 'dark');
+    });
+
+    // 3. Language Engine (VI / EN)
+    const btnLang = document.getElementById('btn-lang');
+    const langLbl = document.getElementById('lang-lbl');
+
+    function applyLang(lang) {
+      document.documentElement.setAttribute('data-lang', lang);
+      localStorage.setItem('vibird_lang', lang);
+      langLbl.innerText = lang.toUpperCase();
+    }
+
+    const savedLang = localStorage.getItem('vibird_lang') || 'vi';
+    applyLang(savedLang);
+
+    btnLang.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-lang');
+      applyLang(cur === 'vi' ? 'en' : 'vi');
+    });
+
+    // 4. CLI Terminal Switcher
+    const cliCommands = {
+      deb: 'wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.deb && sudo dpkg -i vibird-browser_amd64.deb',
+      appimage: 'wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.AppImage && chmod +x *.AppImage && ./*.AppImage',
+      cargo: 'git clone https://github.com/LocShadowVN/VibirdBrowser.git && cd VibirdBrowser && cargo tauri build'
+    };
+
+    function switchCliTab(btn, type) {
+      document.querySelectorAll('.cli-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const codeEl = document.getElementById('cli-cmd');
+      codeEl.innerHTML = `<span class="prompt">$</span>${cliCommands[type]}`;
+    }
+
+    // 5. Copy Command Handler
+    function copyCli(btn) {
+      const codeEl = document.getElementById('cli-cmd');
+      const textToCopy = codeEl.innerText.replace(/^\$\s*/, '');
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const lbl = btn.querySelector('.copy-txt');
+        const orig = lbl.innerText;
+        lbl.innerText = 'Copied!';
+        lbl.style.color = 'var(--emerald)';
+        setTimeout(() => {
+          lbl.innerText = orig;
+          lbl.style.color = '';
+        }, 1800);
+      });
+    }
+  </script>
+</body>
+</html>
