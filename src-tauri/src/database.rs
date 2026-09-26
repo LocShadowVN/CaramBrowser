@@ -21,12 +21,33 @@ pub struct DbManager {
 
 impl DbManager {
     pub fn init() -> Self {
-        let mut dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-        dir.push("caram-browser");
-        fs::create_dir_all(&dir).expect("Cannot create app storage directory");
-        dir.push("caram_system.sqlite");
+        let data_dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
 
-        let conn = Connection::open(dir).expect("SQLite initialization error");
+        let new_dir = data_dir.join("vibird-browser");
+        let old_dir = data_dir.join("caram-browser");
+
+        let work_dir = if new_dir.exists() || !old_dir.exists() {
+            new_dir
+        } else {
+            let _ = fs::create_dir_all(&new_dir);
+            let old_db = old_dir.join("caram_system.sqlite");
+            let new_db = new_dir.join("vibird_system.sqlite");
+            if old_db.exists() && !new_db.exists() {
+                let _ = fs::copy(&old_db, &new_db);
+                log::info!("Migrated database from {:?} to {:?}", old_db, new_db);
+            }
+            let old_rules = old_dir.join("custom_rules.txt");
+            let new_rules = new_dir.join("custom_rules.txt");
+            if old_rules.exists() && !new_rules.exists() {
+                let _ = fs::copy(&old_rules, &new_rules);
+            }
+            new_dir
+        };
+
+        fs::create_dir_all(&work_dir).expect("Cannot create app storage directory");
+        let db_path = work_dir.join("vibird_system.sqlite");
+
+        let conn = Connection::open(&db_path).expect("SQLite initialization error");
 
         conn.execute_batch(
             "
@@ -88,7 +109,8 @@ impl DbManager {
             INSERT OR IGNORE INTO settings (key, value) VALUES ('dark_theme', 'true');
             INSERT OR IGNORE INTO settings (key, value) VALUES ('shield_blocked_count', '0');
             ",
-        ).expect("Schema migration failure");
+        )
+        .expect("Schema migration failure");
 
         Self {
             conn: Mutex::new(conn),
@@ -120,6 +142,15 @@ impl DbManager {
         conn.execute(
             "INSERT INTO history (url, title) VALUES (?1, ?2)",
             params![url, title],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_history_title(&self, url: &str, title: &str) -> rusqlite::Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE history SET title = ?1 WHERE url = ?2 AND (title = url OR title = '')",
+            params![title, url],
         )?;
         Ok(())
     }
