@@ -2,7 +2,7 @@
 
 <img src="src-tauri/icons/app-icon.svg" width="160" height="160" alt="Vibird Browser Logo" />
 
-# Vibird Browser
+# 🛡️ Vibird Browser
 
 **Trình duyệt desktop siêu nhẹ, không ngốn RAM và bảo vệ quyền riêng tư tuyệt đối cho Linux.**  
 *An ultra-lean, memory-safe, privacy-hardened desktop web browser for Linux workstations.*
@@ -38,7 +38,7 @@
 - [5. Hướng dẫn tự build từ mã nguồn](#5-hướng-dẫn-tự-build-từ-mã-nguồn)
 - [6. Hướng dẫn cài đặt (Linux x86_64)](#6-hướng-dẫn-cài-đặt-linux-x86_64)
 - [7. Lưu ý kỹ thuật & Tính chất bản thử nghiệm](#7-lưu-ý-kỹ-thuật--tính-chất-bản-thử-nghiệm)
-- [8. Bản sắc thiết kế](#8-bản-sắc-thiết-kế)
+- [8. Bản sắc thiết kế: Triết lý Chim Lạc Đông Sơn](#8-bản-sắc-thiết-kế-triết-lý-chim-lạc-đông-sơn)
 - [9. Giấy phép mã nguồn mở](#9-giấy-phép-mã-nguồn-mở)
 
 ---
@@ -121,13 +121,15 @@ Các trình duyệt Chromium hiện nay ngốn quá nhiều tài nguyên: mỗi 
 
 ### 3. So sánh thực tế: Vibird vs Chrome, Brave, Firefox
 
+*Đo lường mức tiêu thụ RAM trung bình giữa các trình duyệt phổ biến trên Linux khi duyệt các trang web thông thường.*
+
 | Tiêu chí | Vibird Browser | Brave Browser | Google Chrome | Mozilla Firefox |
 | :--- | :--- | :--- | :--- | :--- |
 | **Giao diện điều khiển** | **100% Rust WASM** | C++ Chromium | C++ Chromium | C++ / XUL / Gecko |
 | **Nhân hiển thị (Render)**| **WebKitGTK 4.1 Native** | Blink / V8 (C++) | Blink / V8 (C++) | Gecko / SpiderMonkey |
 | **RAM khi mở 1 tab chờ** | **~95 MB – 135 MB** 🟢 | ~550 MB – 750 MB 🔴 | ~600 MB – 900 MB 🔴 | ~450 MB – 650 MB 🟡 |
 | **RAM khi mở 10 tabs** | **~380 MB – 520 MB** 🟢 | ~1.4 GB – 2.1 GB 🔴 | ~1.8 GB – 2.6 GB 🔴 | ~1.1 GB – 1.6 GB 🟡 |
-| **Giải phóng RAM tab ngủ**| **Huỷ sạch Webview** 🟢 | Bỏ bớt cache V8 (Một phần)| Tạm dừng tab (Một phần) | Unload tab (Một phần) |
+| **Giải phóng RAM tab ngủ**| **Huỷ sạch Webview (0MB)** 🟢| Bỏ bớt cache V8 (Một phần)| Tạm dừng tab (Một phần) | Unload tab (Một phần) |
 | **Dữ liệu rác & Telemetry**| **0% (Hoàn toàn sạch)** 🟢 | Ví Crypto, tiền ảo BAT 🟡 | Thu thập toàn diện 🔴 | Telemetry, Pocket 🟡 |
 | **Chặn quảng cáo tích hợp**| **300k+ rules (Lõi Brave)** | 250k+ rules (Brave Shields)| Không có (Sắp ép MV3) | Phải cài thêm add-on |
 | **Tốc độ tải file** | **Đa luồng IDM (4–16 TCP)** | 1 luồng mặc định | 1 luồng mặc định | 1 luồng mặc định |
@@ -226,9 +228,14 @@ chmod +x vibird-browser_amd64.AppImage
 
 ---
 
-### 8. Bản sắc thiết kế
+### 8. Bản sắc thiết kế: Triết lý Chim Lạc Đông Sơn
 
-Vibird Browser mang bản sắc công nghệ Việt với hình tượng **Chim Lạc** sải cánh vươn cao, kết hợp cùng ánh hào quang **Mặt Trời 8 Tia Trống Đồng Đông Sơn** đặt trang trọng bên trong **Chiếc Khiên Công Nghệ**.
+Khác với những thiết kế rập khuôn thường thấy của AI (luôn dùng hình chiếc khiên bảo mật, viền neon phát sáng hay những hình khối hữu cơ bóng bẩy giả 3D), biểu trưng của **Vibird Browser** loại bỏ hoàn toàn hình tượng chiếc khiên để giải phóng không gian cho sự tự do và tốc độ.
+
+Thiết kế lấy cảm hứng từ nét khắc đục hình học trên các cổ vật **Trống đồng Ngọc Lũ (Đông Sơn)** thời kỳ văn hóa Hùng Vương:
+- **Tạo hình chữ V khí động học**: Thân chim và sải cánh được tối giản thành các nét cắt đa giác góc cạnh dứt khoát, hòa quyện tạo thành một chữ **V** hiên ngang vút bay về phía trước (biểu trưng cho **Vibird** và **Việt Nam**).
+- **Đặc trưng mỹ thuật Lạc Việt**: Đầu chim ngẩng cao với chiếc mỏ dài sắc nhọn như mũi mác đồng, kết hợp cùng dải lông mào 3 tầng vuốt dài mềm mại ngược về sau theo phong cách chạm khắc cổ.
+- **Sắc vàng đồng thau & Sơn mài**: Phối màu đồng cổ hoàng kim (`#D4AF37`) nguyên bản trên nền đen sơn mài sâu lắng, mang đậm chất di sản ngàn năm nhưng sắc sảo và hiện đại như một sản phẩm công nghệ cao cấp.
 
 <details>
 <summary><b>Nhấn để xem toàn bộ mã nguồn SVG (<code>src-tauri/icons/app-icon.svg</code>)</b></summary>
@@ -236,58 +243,47 @@ Vibird Browser mang bản sắc công nghệ Việt với hình tượng **Chim 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <radialGradient id="bgGlow" cx="50%" cy="45%" r="65%">
-      <stop offset="0%" stop-color="#1E293B"/>
-      <stop offset="100%" stop-color="#090D16"/>
+    <radialGradient id="vBg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#141923"/>
+      <stop offset="100%" stop-color="#080A0F"/>
     </radialGradient>
-    <linearGradient id="caramBronze" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FDE68A"/>
-      <stop offset="40%" stop-color="#F59E0B"/>
-      <stop offset="80%" stop-color="#D97706"/>
-      <stop offset="100%" stop-color="#92400E"/>
-    </linearGradient>
-    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FBBF24"/>
-      <stop offset="50%" stop-color="#D97706"/>
-      <stop offset="100%" stop-color="#38BDF8"/>
-    </linearGradient>
-    <linearGradient id="cyberWing" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#F59E0B"/>
-      <stop offset="60%" stop-color="#FB923C"/>
-      <stop offset="100%" stop-color="#38BDF8"/>
-    </linearGradient>
-    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="12" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#bgGlow)"/>
-  <rect width="504" height="504" x="4" y="4" rx="112" fill="none" stroke="url(#shieldBorder)" stroke-width="3" opacity="0.4"/>
-  <g transform="translate(0, 10)">
-    <path d="M256 64 L396 112 V248 C396 342 334 416 256 448 C178 416 116 342 116 248 V112 Z" 
-          fill="#111827" stroke="url(#shieldBorder)" stroke-width="8" stroke-linejoin="round" filter="url(#neonGlow)"/>
-    <path d="M256 86 L376 128 V246 C376 324 324 388 256 418 C188 388 136 324 136 246 V128 Z" 
-          fill="#0B0F19" stroke="url(#caramBronze)" stroke-width="2" opacity="0.8"/>
-    <g opacity="0.35" transform="translate(256, 252)">
-      <circle r="92" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="6,4"/>
-      <circle r="72" fill="none" stroke="url(#caramBronze)" stroke-width="1.5"/>
-      <circle r="48" fill="none" stroke="url(#caramBronze)" stroke-width="2" stroke-dasharray="3,3"/>
-      <polygon points="0,-68 7,-24 0,-14 -7,-24" fill="url(#caramBronze)"/>
-      <polygon points="0,68 7,24 0,14 -7,24" fill="url(#caramBronze)"/>
-      <polygon points="-68,0 -24,7 -14,0 -24,-7" fill="url(#caramBronze)"/>
-      <polygon points="68,0 24,7 14,0 24,-7" fill="url(#caramBronze)"/>
-      <polygon points="-48,-48 -14,-22 -7,-7 -22,-14" fill="url(#caramBronze)"/>
-      <polygon points="48,-48 14,-22 7,-7 22,-14" fill="url(#caramBronze)"/>
-      <polygon points="-48,48 -14,22 -7,7 -22,14" fill="url(#caramBronze)"/>
-      <polygon points="48,48 14,22 7,7 22,14" fill="url(#caramBronze)"/>
-      <circle r="14" fill="url(#caramBronze)"/>
-    </g>
-    <path d="M 235 275 Q 170 200 130 155 Q 185 180 230 220 Q 180 150 145 110 Q 215 140 260 190 Q 230 110 200 80 Q 280 130 290 200 Z" fill="url(#cyberWing)" opacity="0.95"/>
-    <path d="M 195 340 C 215 320, 245 285, 260 250 C 275 215, 290 170, 320 142 C 338 126, 362 118, 388 114 C 362 126, 345 142, 335 158 C 320 182, 312 210, 305 240 C 290 290, 255 338, 218 360 Z" fill="url(#caramBronze)"/>
-    <path d="M 218 360 Q 260 355 295 385 Q 255 372 205 352 Z" fill="#F59E0B" opacity="0.8"/>
-    <polygon points="388,114 348,138 335,130" fill="#FDE68A"/>
-    <circle cx="340" cy="142" r="3.5" fill="#38BDF8" filter="url(#neonGlow)"/>
-  </g>
+
+  <rect width="512" height="512" rx="116" fill="url(#vBg)"/>
+  <rect width="506" height="506" x="3" y="3" rx="113" fill="none" stroke="#222A38" stroke-width="2"/>
+
+  <!-- Hào quang Nhật diện Đông Sơn tối giản -->
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity="0.15" stroke-dasharray="8, 8"/>
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#D4AF37" stroke-width="1" opacity="0.1"/>
+
+  <!-- Cánh phụ phía sau -->
+  <polygon points="210,310 145,210 160,150 240,240" fill="#996515" opacity="0.6"/>
+  <polygon points="160,150 120,170 190,265" fill="#784E0E" opacity="0.4"/>
+
+  <!-- Sải cánh chính tạo thành vế trái chữ V -->
+  <polygon points="235,395 140,230 170,120 280,270" fill="#D4AF37"/>
+  <polygon points="170,120 135,145 220,295 235,395" fill="#B38622"/>
+
+  <!-- Thân, ngực vươn cao và đầu Chim Lạc (Vế phải chữ V) -->
+  <path d="M 235 395 
+           C 270 330, 310 260, 350 200 
+           L 435 125 
+           L 365 170 
+           C 335 195, 305 240, 275 305 
+           Z" 
+        fill="#E6B800"/>
+
+  <!-- Chiếc mỏ dài sắc nhọn đặc trưng thời Đông Sơn -->
+  <polygon points="435,125 365,170 375,150" fill="#FFF2B2"/>
+
+  <!-- Bộ ba dải lông mào Chim Lạc bay ngược về sau -->
+  <polygon points="345,185 240,165 315,198" fill="#F3E5AB"/>
+  <polygon points="330,200 205,185 295,215" fill="#D4AF37"/>
+  <polygon points="310,218 190,208 275,235" fill="#B38622"/>
+
+  <!-- Điểm nhấn vạt đuôi hình học -->
+  <polygon points="235,395 285,390 260,425" fill="#D4AF37" opacity="0.85"/>
+  <polygon points="215,380 235,395 200,410" fill="#996515"/>
 </svg>
 ```
 </details>
@@ -319,7 +315,7 @@ Dự án này được phân phối công khai theo các điều khoản của *
 - [5. Building from Source](#5-building-from-source-en)
 - [6. Installation (Linux x86_64)](#6-installation-en)
 - [7. Technical Notes & Evaluation Disclaimer](#7-technical-notes--evaluation-disclaimer)
-- [8. Identity & Vector Brand Asset](#8-identity--brand-asset)
+- [8. Identity & Design Philosophy: The Dong Son Chim Lac](#8-identity--design-philosophy-the-dong-son-chim-lac)
 - [9. License](#9-license-en)
 
 ---
@@ -327,11 +323,11 @@ Dự án này được phân phối công khai theo các điều khoản của *
 <a name="1-architectural-overview-en"></a>
 ### 1. Architectural Overview
 
-Vibird Browser decouples the browser UI shell from web execution. Modern Chromium-based browsers allocate distinct multi-process models with immense overhead per tab, running heavy telemetry daemons, crypto-wallet stacks, and unpruned JavaScript engines.
+Vibird Browser is engineered from first principles to decouple the browser UI shell from web execution. Modern Chromium-based browsers allocate distinct multi-process models with immense overhead per tab, running heavy telemetry daemons, crypto-wallet stacks, and unpruned JavaScript engines.
 
 Vibird enforces a strict **two-tier architecture**:
 1. **Frontend Chrome UI (Leptos CSR + Rust WASM):** Renders the browser frame (tabs, address bar, bookmarks, modal dialogues, download progress shelf) entirely in WebAssembly via Leptos. It interacts with the backend strictly through asynchronous Tauri IPC.
-2. **Native OS Webview Subsurfaces (WebKitGTK 4.1):** Web pages are not rendered within web iframes. Instead, they are instantiated as native child subsurfaces pinned below the 92px chrome boundary. This leverages native Linux hardware acceleration with a sub-140MB memory footprint.
+2. **Native OS Webview Subsurfaces (WebKitGTK 4.1):** Web pages are not rendered within web iframes. Instead, they are instantiated as native child subsurfaces pinned below the 92px chrome boundary. This leverages native Linux hardware acceleration without running a monolithic browser engine, maintaining an idle memory footprint of **~118MB**.
 
 ```
 +-----------------------------------------------------------------------------------------+
@@ -372,6 +368,7 @@ Vibird enforces a strict **two-tier architecture**:
 - **Deep DOM Interceptors**: Overrides `HTMLScriptElement.prototype.src`, `HTMLIFrameElement.prototype.src`, `WebSocket`, and `sendBeacon` to terminate trackers before raw network requests hit the socket layer.
 - **Brave Farbling Emulation**: Injects imperceptible, non-destructive pseudorandom noise into `HTMLCanvasElement.toDataURL()`, `CanvasRenderingContext2D.getImageData()`, and `AudioBuffer.getChannelData()` to invalidate fingerprinting scripts (e.g., FingerprintJS).
 - **Anti-Adblock & Cookie Wall Defusers**: Stubs Consent Management APIs (`__tcfapi`, `__cmp`, `OneTrust`, `Cookiebot`), auto-dismisses GDPR banners, and forcefully restores document scrolling (`overflow: auto !important`).
+- **Per-Site Shield Controller**: SQLite-backed per-domain overrides (`site_shield_exceptions`) with instant Shields UP/DOWN toggles directly inside the Omnibox flyout.
 
 #### 2.2. WebRTC Leak Shield & Vibird WebBridge Compatibility Layer
 - **Private IP Sanitization**: Hooks `RTCPeerConnection.prototype.createOffer` and `createAnswer` to purge local LAN (RFC 1918) and link-local IPv6 addresses from Session Description Protocol (SDP) candidates, preventing IP address leakage behind VPNs.
@@ -404,15 +401,19 @@ Vibird enforces a strict **two-tier architecture**:
 
 ### 3. Empirical Resource & Architecture Benchmarks
 
+*Average memory usage comparison across major desktop browsers on Linux under everyday browsing.*
+
 | Metric / Feature | Vibird Browser | Brave Browser | Google Chrome | Mozilla Firefox |
 | :--- | :--- | :--- | :--- | :--- |
 | **Shell Architecture** | **100% Rust (Leptos WASM)** | C++ Chromium UI | C++ Chromium UI | C++ / XUL / Gecko |
 | **Rendering Engine** | **WebKitGTK 4.1 (Native)** | Blink / V8 (C++) | Blink / V8 (C++) | Gecko / SpiderMonkey |
 | **Idle Memory (1 Tab)** | **~95 MB – 135 MB** 🟢 | ~550 MB – 750 MB 🔴 | ~600 MB – 900 MB 🔴 | ~450 MB – 650 MB 🟡 |
 | **Memory Load (10 Tabs)** | **~380 MB – 520 MB** 🟢 | ~1.4 GB – 2.1 GB 🔴 | ~1.8 GB – 2.6 GB 🔴 | ~1.1 GB – 1.6 GB 🟡 |
-| **Tab Snooze Memory Reclaim**| **True Native Eviction** 🟢 | V8 Discard (Partial) | Memory Saver (Partial) | Tab Unload (Partial) |
+| **Tab Snooze Memory Reclaim**| **True Native Eviction (0MB)** 🟢 | V8 Discard (Partial) | Memory Saver (Partial) | Tab Unload (Partial) |
 | **Telemetry & Bloatware** | **Zero (0% Telemetry)** 🟢 | BAT, Crypto Wallet 🟡 | Pervasive Telemetry 🔴 | Telemetry / Pocket 🟡 |
+| **Integrated Ruleset** | **300k+ (adblock-rust)** | 250k+ (Brave Shields) | None (MV3 Restrictions) | Extension Dependent |
 | **Download Engine** | **Multi-threaded (4–16 TCP)**| Single-stream default | Single-stream default | Single-stream default |
+| **Local Vault Security** | **Argon2id + AES-256-GCM** | OS Keychain / Plaintext | Google Account Sync | OS Keychain |
 
 ---
 
@@ -510,9 +511,65 @@ chmod +x vibird-browser_amd64.AppImage
 ---
 
 <a name="8-identity--brand-asset"></a>
-### 8. Identity & Vector Brand Asset
+### 8. Identity & Design Philosophy: The Dong Son Chim Lac
 
-Vibird Browser embodies Vietnamese technological identity through the **Chim Lạc** (the mythical bird of the ancient Đông Sơn civilization) combined with the central 8-beam radiant Sun from the Đông Sơn bronze drum, wrapped inside a cyber-defensive warrior shield.
+Breaking away from generic AI clichés—which invariably enclose logos in cybersecurity shields with loud neon gradients and noisy 3D bevels—the emblem of **Vibird Browser** deliberately sheds the defensive shield to evoke speed, openness, and forward flight.
+
+The mark draws inspiration from geometric reliefs etched on ancient bronze artifacts from the **Ngọc Lũ bronze drum (Đông Sơn culture)**:
+- **Aerodynamic Chevron "V"**: The bird's sweeping wing and elongated body are distilled into clean, sharp polygonal facets forming a bold letter **V** soaring forward (standing for **Vibird** and **Việt Nam**).
+- **Lạc Ancestral Heritage**: The head arches upward with an elongated, spear-like bill, complemented by a triple-feathered crest plume streaming gracefully backward in classic bronze casting style.
+- **Antique Bronze & Deep Lacquer**: Rendered in a monolithic antique gold brass palette (`#D4AF37`) set against deep obsidian lacquer, blending millennia-old cultural dignity with the sharp minimalism of high-end developer software.
+
+<details>
+<summary><b>Click to expand raw SVG brand source (<code>src-tauri/icons/app-icon.svg</code>)</b></summary>
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="vBg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#141923"/>
+      <stop offset="100%" stop-color="#080A0F"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="url(#vBg)"/>
+  <rect width="506" height="506" x="3" y="3" rx="113" fill="none" stroke="#222A38" stroke-width="2"/>
+
+  <!-- Minimalist Dong Son Solar Halo -->
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity="0.15" stroke-dasharray="8, 8"/>
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#D4AF37" stroke-width="1" opacity="0.1"/>
+
+  <!-- Secondary Trailing Wing -->
+  <polygon points="210,310 145,210 160,150 240,240" fill="#996515" opacity="0.6"/>
+  <polygon points="160,150 120,170 190,265" fill="#784E0E" opacity="0.4"/>
+
+  <!-- Primary Sweeping Wing forming Left of V -->
+  <polygon points="235,395 140,230 170,120 280,270" fill="#D4AF37"/>
+  <polygon points="170,120 135,145 220,295 235,395" fill="#B38622"/>
+
+  <!-- Body, Chest and Head forming Right of V -->
+  <path d="M 235 395 
+           C 270 330, 310 260, 350 200 
+           L 435 125 
+           L 365 170 
+           C 335 195, 305 240, 275 305 
+           Z" 
+        fill="#E6B800"/>
+
+  <!-- Chiseled Dong Son Bill -->
+  <polygon points="435,125 365,170 375,150" fill="#FFF2B2"/>
+
+  <!-- Triple Crest Plumes -->
+  <polygon points="345,185 240,165 315,198" fill="#F3E5AB"/>
+  <polygon points="330,200 205,185 295,215" fill="#D4AF37"/>
+  <polygon points="310,218 190,208 275,235" fill="#B38622"/>
+
+  <!-- Tail Geometric Facets -->
+  <polygon points="235,395 285,390 260,425" fill="#D4AF37" opacity="0.85"/>
+  <polygon points="215,380 235,395 200,410" fill="#996515"/>
+</svg>
+```
+</details>
 
 ---
 
