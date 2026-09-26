@@ -19,8 +19,8 @@
       --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-      --gold: #f59e0b;
-      --bronze: #d97706;
+      --gold: #d4af37;
+      --gold-bright: #e6b800;
       --cyan: #38bdf8;
       --emerald: #10b981;
       --danger: #ef4444;
@@ -31,23 +31,23 @@
     }
 
     html[data-theme="dark"] {
-      --bg: #080a0f;
-      --bg-subtle: #0d1118;
-      --surface: #121622;
-      --surface-raised: #181e2d;
-      --surface-hover: #1e2638;
-      --surface-glass: rgba(18, 22, 34, 0.82);
+      --bg: #090c10;
+      --bg-subtle: #0f131a;
+      --surface: #141923;
+      --surface-raised: #1a212e;
+      --surface-hover: #20293a;
+      --surface-glass: rgba(20, 25, 35, 0.85);
 
-      --border: #1e2638;
-      --border-strong: #2c374e;
-      --border-accent: rgba(245, 158, 11, 0.35);
+      --border: #222a38;
+      --border-strong: #313c50;
+      --border-accent: rgba(212, 175, 55, 0.35);
 
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --text-faint: #475569;
 
-      --shadow-ambient: 0 24px 60px -12px rgba(0, 0, 0, 0.9);
-      --card-gradient: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 75%);
+      --shadow-ambient: 0 24px 60px -12px rgba(0, 0, 0, 0.95);
+      --card-gradient: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.08), transparent 75%);
     }
 
     html[data-theme="light"] {
@@ -60,14 +60,14 @@
 
       --border: #e2e8f0;
       --border-strong: #cbd5e1;
-      --border-accent: rgba(217, 119, 6, 0.35);
+      --border-accent: rgba(212, 175, 55, 0.45);
 
       --text: #0f172a;
       --text-muted: #64748b;
       --text-faint: #94a3b8;
 
       --shadow-ambient: 0 20px 48px -10px rgba(15, 23, 42, 0.08);
-      --card-gradient: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.05), transparent 75%);
+      --card-gradient: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.05), transparent 75%);
     }
 
     html[data-lang="vi"] .lang-en { display: none !important; }
@@ -122,14 +122,12 @@
       transform: translateX(-50%);
       width: 800px;
       height: 480px;
-      background: radial-gradient(circle, rgba(245, 158, 11, 0.14) 0%, rgba(56, 189, 248, 0.08) 45%, transparent 70%);
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, rgba(56, 189, 248, 0.06) 45%, transparent 70%);
       pointer-events: none;
       z-index: 1;
     }
 
-    /* ==========================================================================
-       TOP ANNOUNCEMENT BAR & NAVIGATION
-       ========================================================================== */
+    /* Top Announcement Bar */
     .top-announce {
       background: var(--bg-subtle);
       border-bottom: 1px solid var(--border);
@@ -151,8 +149,8 @@
       gap: 5px;
       padding: 2px 8px;
       border-radius: 99px;
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid rgba(212, 175, 55, 0.3);
       font-family: var(--font-mono);
       font-size: 10.5px;
       font-weight: 700;
@@ -283,9 +281,7 @@
       border-color: var(--border-strong);
     }
 
-    /* ==========================================================================
-       HERO SECTION
-       ========================================================================== */
+    /* Hero */
     .hero {
       padding: 72px 0 54px;
       text-align: center;
@@ -299,7 +295,7 @@
       font-family: var(--font-mono);
       font-size: 11.5px;
       color: var(--gold);
-      background: rgba(245, 158, 11, 0.08);
+      background: rgba(212, 175, 55, 0.08);
       border: 1px solid var(--border-accent);
       padding: 4px 12px;
       border-radius: 99px;
@@ -318,7 +314,7 @@
     }
 
     .text-gradient {
-      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #38bdf8 100%);
+      background: linear-gradient(135deg, #d4af37 0%, #f5d061 50%, #38bdf8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -340,22 +336,22 @@
     }
 
     .btn-main {
-      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-      color: #ffffff;
+      background: linear-gradient(135deg, #d4af37 0%, #b38622 100%);
+      color: #090c10;
       padding: 10px 20px;
       border-radius: var(--radius-sm);
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.35);
+      box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25);
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-main:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(234, 88, 12, 0.5);
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
     }
 
     .btn-sec {
@@ -378,7 +374,7 @@
       transform: translateY(-1px);
     }
 
-    /* CLI Quick Box */
+    /* CLI Box */
     .cli-box {
       max-width: 620px;
       margin: 0 auto 60px;
@@ -399,11 +395,7 @@
       align-items: center;
     }
 
-    .cli-tabs {
-      display: flex;
-      gap: 6px;
-    }
-
+    .cli-tabs { display: flex; gap: 6px; }
     .cli-tab-btn {
       background: transparent;
       border: none;
@@ -442,9 +434,7 @@
       font-weight: 700;
     }
 
-    /* ==========================================================================
-       AUTHENTIC BROWSER UI SPECIMEN
-       ========================================================================== */
+    /* Mockup */
     .specimen-wrap {
       max-width: 1040px;
       margin: 0 auto;
@@ -641,11 +631,9 @@
     }
 
     /* ==========================================================================
-       6-CARD BENTO GRID (FULL FEATURE SUITE)
+       6-CARD BENTO GRID
        ========================================================================== */
-    .section-head {
-      margin-bottom: 40px;
-    }
+    .section-head { margin-bottom: 40px; }
     .eyebrow {
       font-family: var(--font-mono);
       font-size: 11.5px;
@@ -697,9 +685,7 @@
       border-color: var(--border-strong);
       transform: translateY(-2px);
     }
-    .bento-card.span-2 {
-      grid-column: span 2;
-    }
+    .bento-card.span-2 { grid-column: span 2; }
 
     .bento-icon {
       width: 38px;
@@ -734,7 +720,7 @@
       margin-top: 16px;
     }
 
-    /* Architecture Visual Diagram Box */
+    /* Architecture Visual Diagram */
     .arch-diagram {
       background: var(--bg-subtle);
       border: 1px solid var(--border);
@@ -750,9 +736,7 @@
     .arch-diagram .hl { color: var(--cyan); font-weight: 600; }
     .arch-diagram .hl-gold { color: var(--gold); font-weight: 600; }
 
-    /* ==========================================================================
-       HONEST BENCHMARKS COMPARISON TABLE (NO FAKE LAB BRAGS)
-       ========================================================================== */
+    /* Benchmarks */
     .table-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -784,15 +768,13 @@
     }
 
     .col-highlight {
-      background: rgba(245, 158, 11, 0.05);
+      background: rgba(212, 175, 55, 0.05);
       color: var(--gold);
       font-family: var(--font-mono);
       font-weight: 700;
     }
 
-    /* ==========================================================================
-       OPEN SOURCE & TRANSPARENCY SECTION
-       ========================================================================== */
+    /* Transparency */
     .transparency-box {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -839,9 +821,7 @@
       line-height: 1.6;
     }
 
-    /* ==========================================================================
-       DOWNLOADS SECTION
-       ========================================================================== */
+    /* Downloads */
     .downloads-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -915,7 +895,7 @@
 
   <div class="bg-grid"></div>
 
-  <!-- 1. Top Release Bar with Live Dynamic Tag -->
+  <!-- Top Bar with Live Tag -->
   <div class="top-announce">
     <div class="badge-pill">
       <span class="badge-dot"></span>
@@ -931,29 +911,21 @@
     </span>
   </div>
 
-  <!-- 2. Sticky Navbar -->
+  <!-- Navbar -->
   <nav>
     <div class="container nav-inner">
       <a href="#" class="brand-link">
         <div class="brand-logo-frame">
-          <!-- Vector Logo: Chim Lạc & Trống Đồng Đông Sơn -->
+          <!-- Logo Chiseled Chim Lạc -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
-            <defs>
-              <radialGradient id="vBg" cx="50%" cy="45%" r="65%">
-                <stop offset="0%" stop-color="#1E293B"/>
-                <stop offset="100%" stop-color="#090D16"/>
-              </radialGradient>
-              <linearGradient id="vGold" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#FDE68A"/>
-                <stop offset="50%" stop-color="#F59E0B"/>
-                <stop offset="100%" stop-color="#D97706"/>
-              </linearGradient>
-            </defs>
-            <rect width="512" height="512" rx="120" fill="url(#vBg)"/>
-            <path d="M256 64 L396 112 V248 C396 342 334 416 256 448 C178 416 116 342 116 248 V112 Z" fill="#111827" stroke="url(#vGold)" stroke-width="14"/>
-            <circle cx="256" cy="256" r="60" fill="none" stroke="url(#vGold)" stroke-width="4" stroke-dasharray="8,6" opacity="0.4"/>
-            <path d="M 235 275 Q 170 200 130 155 Q 185 180 230 220 Q 180 150 145 110 Q 215 140 260 190 Q 230 110 200 80 Q 280 130 290 200 Z" fill="#38bdf8" opacity="0.95"/>
-            <path d="M 195 340 C 215 320, 245 285, 260 250 C 275 215, 290 170, 320 142 C 338 126, 362 118, 388 114 C 362 126, 345 142, 335 158 C 320 182, 312 210, 305 240 C 290 290, 255 338, 218 360 Z" fill="url(#vGold)"/>
+            <rect width="512" height="512" rx="116" fill="#090C10"/>
+            <circle cx="256" cy="256" r="176" fill="none" stroke="#D4AF37" stroke-width="3" opacity="0.2" stroke-dasharray="16, 16"/>
+            <polygon points="210,310 145,210 160,150 240,240" fill="#996515" opacity="0.6"/>
+            <polygon points="235,395 140,230 170,120 280,270" fill="#D4AF37"/>
+            <path d="M 235 395 C 270 330, 310 260, 350 200 L 435 125 L 365 170 C 335 195, 305 240, 275 305 Z" fill="#E6B800"/>
+            <polygon points="435,125 365,170 375,150" fill="#FFF2B2"/>
+            <polygon points="345,185 240,165 315,198" fill="#F3E5AB"/>
+            <polygon points="330,200 205,185 295,215" fill="#D4AF37"/>
           </svg>
         </div>
         <div class="brand-name">
@@ -970,13 +942,13 @@
       </ul>
 
       <div class="nav-tools">
-        <button class="btn-tool" id="btn-theme" title="Chuyển chế độ sáng/tối">
+        <button class="btn-tool" id="btn-theme" title="Theme">
           <svg id="moon-ico" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
           <svg id="sun-ico" style="display:none;" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-          <span id="theme-lbl">Dark</span>
+          <span id="theme-lbl"><span class="lang-vi">Tối</span><span class="lang-en">Dark</span></span>
         </button>
 
-        <button class="btn-tool" id="btn-lang" title="Switch Language">
+        <button class="btn-tool" id="btn-lang" title="Language">
           <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
           <span id="lang-lbl">VI</span>
         </button>
@@ -989,7 +961,7 @@
     </div>
   </nav>
 
-  <!-- 3. Hero Section -->
+  <!-- Hero Section -->
   <section class="hero">
     <div class="hero-glow"></div>
     <div class="container">
@@ -1023,13 +995,16 @@
         </a>
       </div>
 
-      <!-- Quick CLI Install Box -->
+      <!-- Quick CLI Box -->
       <div class="cli-box">
         <div class="cli-bar">
           <div class="cli-tabs">
             <button class="cli-tab-btn active" onclick="switchCliTab(this, 'deb')">Debian / Ubuntu</button>
             <button class="cli-tab-btn" onclick="switchCliTab(this, 'appimage')">Universal AppImage</button>
-            <button class="cli-tab-btn" onclick="switchCliTab(this, 'cargo')">Build from Source</button>
+            <button class="cli-tab-btn" onclick="switchCliTab(this, 'cargo')">
+              <span class="lang-vi">Tự biên dịch từ mã nguồn</span>
+              <span class="lang-en">Build from Source</span>
+            </button>
           </div>
           <span style="font-size:10.5px; color:var(--text-faint); font-family:var(--font-mono);">bash</span>
         </div>
@@ -1039,12 +1014,12 @@
           </div>
           <button class="btn-tool" onclick="copyCli(this)">
             <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            <span class="copy-txt">Copy</span>
+            <span class="copy-txt"><span class="lang-vi">Sao chép</span><span class="lang-en">Copy</span></span>
           </button>
         </div>
       </div>
 
-      <!-- 4. High-Fidelity Browser UI Specimen -->
+      <!-- Mockup Specimen -->
       <div class="specimen-wrap">
         <div class="browser-mockup">
           <div class="mockup-header">
@@ -1061,7 +1036,7 @@
               <div class="tab-item">
                 <span>GitHub — LocShadowVN</span>
               </div>
-              <div class="tab-item snooze-demo" title="Tab tự động giải phóng Webview sau 10 phút">
+              <div class="tab-item snooze-demo">
                 <span>ArchWiki</span>
                 <span class="tab-badge-ram">0 MB RAM</span>
               </div>
@@ -1113,7 +1088,6 @@
               </div>
             </div>
 
-            <!-- Floating Download Shelf Demo inside Mockup -->
             <div class="mockup-shelf">
               <div class="shelf-top">
                 <span>linux-kernel-6.10.tar.xz</span>
@@ -1124,7 +1098,10 @@
               </div>
               <div class="shelf-sub">
                 <span>74% (104.2 MB / 140.8 MB)</span>
-                <span>8 connections</span>
+                <span>
+                  <span class="lang-vi">8 luồng kết nối</span>
+                  <span class="lang-en">8 connections</span>
+                </span>
               </div>
             </div>
           </div>
@@ -1133,7 +1110,7 @@
     </div>
   </section>
 
-  <!-- 5. 6-Card Full Bento Grid (Trình Làng Tất Cả Vũ Khí Công Nghệ) -->
+  <!-- 5. 6-Card Full Bento Grid -->
   <section class="container" id="features" style="padding-top:40px;">
     <div class="section-head">
       <div class="eyebrow">
@@ -1202,7 +1179,7 @@
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           </div>
           <h3>
-            <span class="lang-vi">Bộ tải file đa luồng xé băng thông kiểu IDM</span>
+            <span class="lang-vi">Bộ tải file đa luồng xé băng thông như IDM</span>
             <span class="lang-en">IDM-Style Chunked Downloader</span>
           </h3>
           <p>
@@ -1284,18 +1261,40 @@
       </div>
     </div>
 
-    <!-- Architecture Visual Flow Box -->
+    <!-- Architecture Visual Flow Box (Song ngữ 100%) -->
     <div class="arch-diagram">
-      <div><span class="hl">[Giao diện WASM (Leptos CSR)]</span> &lt;=== Asynchronous Tauri IPC (invoke) ===&gt; <span class="hl-gold">[Lõi Hệ Thống (Tauri v2 / Rust)]</span></div>
+      <div>
+        <span class="hl">
+          <span class="lang-vi">[Giao diện WASM (Leptos CSR)]</span>
+          <span class="lang-en">[Chrome UI (Leptos CSR WASM)]</span>
+        </span> 
+        &lt;=== Asynchronous Tauri IPC (invoke) ===&gt; 
+        <span class="hl-gold">
+          <span class="lang-vi">[Lõi Hệ Thống (Tauri v2 / Rust)]</span>
+          <span class="lang-en">[System Core (Tauri v2 / Rust)]</span>
+        </span>
+      </div>
       <div>         │                                                                             │</div>
-      <div>         ├── Thanh Tab & Omnibox phản ứng nhanh (92px)                                ├── WebKitGTK 4.1 Native Subsurface</div>
-      <div>         ├── Hệ thống phím tắt chuẩn trình duyệt (Ctrl+T/W/L/R/F)                      ├── Luồng OS chạy adblock-rust (300k rules)</div>
-      <div>         └── Thanh Download Shelf báo tiến độ thời gian thực                           ├── Bộ tải phân mảnh Range 8 luồng IDM</div>
-      <div>                                                                                       └── Két lưu mật khẩu Argon2id Envelope</div>
+      <div>
+        <span class="lang-vi">         ├── Thanh Tab & Omnibox phản ứng nhanh (92px)                                ├── WebKitGTK 4.1 Native Subsurface</span>
+        <span class="lang-en">         ├── Reactive Tab Strip & Omnibox Bar (92px)                                  ├── WebKitGTK 4.1 Native Subsurface</span>
+      </div>
+      <div>
+        <span class="lang-vi">         ├── Hệ thống phím tắt chuẩn trình duyệt (Ctrl+T/W/L/R/F)                      ├── Luồng OS chạy adblock-rust (300k rules)</span>
+        <span class="lang-en">         ├── Standard Keyboard Muscle Shortcuts (Ctrl+T/W/L/R/F)                      ├── Dedicated OS adblock-rust Thread</span>
+      </div>
+      <div>
+        <span class="lang-vi">         └── Thanh Download Shelf báo tiến độ thời gian thực                           ├── Bộ tải phân mảnh Range 8 luồng IDM</span>
+        <span class="lang-en">         └── Real-time Telemetry Download Progress Shelf                               ├── 8-Stream Parallel Range Downloader</span>
+      </div>
+      <div>
+        <span class="lang-vi">                                                                                       └── Két lưu mật khẩu Argon2id Envelope</span>
+        <span class="lang-en">                                                                                       └── Argon2id Envelope Security Vault</span>
+      </div>
     </div>
   </section>
 
-  <!-- 6. Honest Benchmarks Table (Loại Bỏ Đo Lường Máy Trạm Sáo Rỗng) -->
+  <!-- 6. Real-World Benchmarks -->
   <section class="container" id="benchmarks" style="padding-top:20px;">
     <div class="section-head">
       <div class="eyebrow">
@@ -1348,23 +1347,50 @@
           <tr>
             <td><strong><span class="lang-vi">Giải phóng RAM tab ngủ</span><span class="lang-en">Tab Memory Eviction</span></strong></td>
             <td class="col-highlight"><span class="lang-vi">Huỷ sạch Webview (0MB)</span><span class="lang-en">Complete Eviction (0MB)</span></td>
-            <td>Bỏ bớt cache V8</td>
-            <td>Tạm dừng một phần</td>
-            <td>Unload một phần</td>
+            <td>
+              <span class="lang-vi">Bỏ bớt cache V8</span>
+              <span class="lang-en">V8 Discard (Partial)</span>
+            </td>
+            <td>
+              <span class="lang-vi">Tạm dừng một phần</span>
+              <span class="lang-en">Memory Saver (Partial)</span>
+            </td>
+            <td>
+              <span class="lang-vi">Unload một phần</span>
+              <span class="lang-en">Tab Unload (Partial)</span>
+            </td>
           </tr>
           <tr>
             <td><strong><span class="lang-vi">Chặn quảng cáo tích hợp</span><span class="lang-en">Adblock Engine</span></strong></td>
             <td class="col-highlight">300k+ rules (adblock-rust)</td>
             <td>250k+ rules (Brave Shields)</td>
-            <td>Không có (Hạn chế MV3)</td>
-            <td>Phải cài thêm add-on</td>
+            <td>
+              <span class="lang-vi">Không có (Hạn chế MV3)</span>
+              <span class="lang-en">None (MV3 Limits)</span>
+            </td>
+            <td>
+              <span class="lang-vi">Phải cài thêm add-on</span>
+              <span class="lang-en">Extension Required</span>
+            </td>
           </tr>
           <tr>
             <td><strong><span class="lang-vi">Cơ chế tải file</span><span class="lang-en">Download Engine</span></strong></td>
-            <td class="col-highlight">Đa luồng IDM (4–16 TCP)</td>
-            <td>1 luồng mặc định</td>
-            <td>1 luồng mặc định</td>
-            <td>1 luồng mặc định</td>
+            <td class="col-highlight">
+              <span class="lang-vi">Đa luồng IDM (4–16 TCP)</span>
+              <span class="lang-en">Multi-Stream (4–16 TCP)</span>
+            </td>
+            <td>
+              <span class="lang-vi">1 luồng mặc định</span>
+              <span class="lang-en">Single-stream default</span>
+            </td>
+            <td>
+              <span class="lang-vi">1 luồng mặc định</span>
+              <span class="lang-en">Single-stream default</span>
+            </td>
+            <td>
+              <span class="lang-vi">1 luồng mặc định</span>
+              <span class="lang-en">Single-stream default</span>
+            </td>
           </tr>
           <tr>
             <td><strong><span class="lang-vi">Két lưu mật khẩu</span><span class="lang-en">Password Vault</span></strong></td>
@@ -1492,27 +1518,38 @@
     </div>
   </section>
 
-  <!-- 9. Footer -->
+  <!-- 9. Footer (Song ngữ hoàn chỉnh) -->
   <footer>
     <div class="container footer-flex">
       <div>
-        <strong>Vibird Browser</strong> — Bản sắc công nghệ Việt • GNU GPL-3.0 License.
+        <strong>Vibird Browser</strong> — 
+        <span class="lang-vi">Bản sắc công nghệ Việt • GNU GPL-3.0 License.</span>
+        <span class="lang-en">Vietnamese Heritage Tech • GNU GPL-3.0 License.</span>
       </div>
       <div class="footer-links">
-        <a href="https://github.com/LocShadowVN/VibirdBrowser" target="_blank">Mã nguồn GitHub</a>
+        <a href="https://github.com/LocShadowVN/VibirdBrowser" target="_blank">
+          <span class="lang-vi">Mã nguồn GitHub</span>
+          <span class="lang-en">GitHub Repository</span>
+        </a>
         <a href="https://github.com/LocShadowVN/VibirdBrowser/releases" target="_blank">Releases</a>
-        <a href="https://github.com/LocShadowVN/VibirdBrowser/issues" target="_blank">Báo lỗi</a>
-        <a href="https://github.com/LocShadowVN/VibirdBrowser#7-lưu-ý-kỹ-thuật--tính-chất-bản-thử-nghiệm" target="_blank">Lưu ý kỹ thuật</a>
-        <a href="#">Lên đầu trang &uarr;</a>
+        <a href="https://github.com/LocShadowVN/VibirdBrowser/issues" target="_blank">
+          <span class="lang-vi">Báo lỗi</span>
+          <span class="lang-en">Issues</span>
+        </a>
+        <a href="https://github.com/LocShadowVN/VibirdBrowser#7-lưu-ý-kỹ-thuật--tính-chất-bản-thử-nghiệm" target="_blank">
+          <span class="lang-vi">Lưu ý kỹ thuật</span>
+          <span class="lang-en">Technical Notes</span>
+        </a>
+        <a href="#">
+          <span class="lang-vi">Lên đầu trang &uarr;</span>
+          <span class="lang-en">Back to top &uarr;</span>
+        </a>
       </div>
     </div>
   </footer>
 
-  <!-- ==========================================================================
-       VANILLA JAVASCRIPT: THEME, LANG, CLI TABS & DYNAMIC RELEASE FETCHER
-       ========================================================================== -->
+  <!-- Vanilla JS -->
   <script>
-    // 1. Live Dynamic Version Fetcher from GitHub API
     fetch('https://api.github.com/repos/LocShadowVN/VibirdBrowser/releases/latest')
       .then(res => res.json())
       .then(data => {
@@ -1524,9 +1561,8 @@
       })
       .catch(() => {});
 
-    // 2. Theme Engine (Dark / Light)
+    // Theme Engine
     const btnTheme = document.getElementById('btn-theme');
-    const themeLbl = document.getElementById('theme-lbl');
     const sunIco = document.getElementById('sun-ico');
     const moonIco = document.getElementById('moon-ico');
 
@@ -1534,11 +1570,9 @@
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('vibird_theme', theme);
       if (theme === 'dark') {
-        themeLbl.innerText = 'Dark';
         moonIco.style.display = 'block';
         sunIco.style.display = 'none';
       } else {
-        themeLbl.innerText = 'Light';
         moonIco.style.display = 'none';
         sunIco.style.display = 'block';
       }
@@ -1552,7 +1586,7 @@
       applyTheme(cur === 'dark' ? 'light' : 'dark');
     });
 
-    // 3. Language Engine (VI / EN)
+    // Language Engine
     const btnLang = document.getElementById('btn-lang');
     const langLbl = document.getElementById('lang-lbl');
 
@@ -1570,7 +1604,7 @@
       applyLang(cur === 'vi' ? 'en' : 'vi');
     });
 
-    // 4. CLI Terminal Switcher
+    // CLI Terminal Switcher
     const cliCommands = {
       deb: 'wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.deb && sudo dpkg -i vibird-browser_amd64.deb',
       appimage: 'wget https://github.com/LocShadowVN/VibirdBrowser/releases/latest/download/vibird-browser_amd64.AppImage && chmod +x *.AppImage && ./*.AppImage',
@@ -1584,19 +1618,25 @@
       codeEl.innerHTML = `<span class="prompt">$</span>${cliCommands[type]}`;
     }
 
-    // 5. Copy Command Handler
+    // Copy Handler
     function copyCli(btn) {
       const codeEl = document.getElementById('cli-cmd');
       const textToCopy = codeEl.innerText.replace(/^\$\s*/, '');
       navigator.clipboard.writeText(textToCopy).then(() => {
-        const lbl = btn.querySelector('.copy-txt');
-        const orig = lbl.innerText;
-        lbl.innerText = 'Copied!';
-        lbl.style.color = 'var(--emerald)';
-        setTimeout(() => {
-          lbl.innerText = orig;
-          lbl.style.color = '';
-        }, 1800);
+        const lblVi = btn.querySelector('.lang-vi');
+        const lblEn = btn.querySelector('.lang-en');
+        if (lblVi && lblEn) {
+          const origVi = lblVi.innerText;
+          const origEn = lblEn.innerText;
+          lblVi.innerText = 'Đã chép!';
+          lblEn.innerText = 'Copied!';
+          btn.style.borderColor = 'var(--emerald)';
+          setTimeout(() => {
+            lblVi.innerText = origVi;
+            lblEn.innerText = origEn;
+            btn.style.borderColor = '';
+          }, 1800);
+        }
       });
     }
   </script>
