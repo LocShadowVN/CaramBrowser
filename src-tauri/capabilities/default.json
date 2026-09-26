@@ -1,9 +1,9 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Permissions for Vibird Browser",
-  "windows": ["*"],
-  "webviews": ["*"],
+  "identifier": "ui-chrome",
+  "description": "Permissions for the trusted UI chrome webview",
+  "windows": ["main"],
+  "webviews": ["main"],
   "permissions": [
     "core:default",
     "shell:allow-open"
