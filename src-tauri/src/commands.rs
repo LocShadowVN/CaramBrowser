@@ -55,7 +55,6 @@ pub struct PageNavigationState {
     pub is_loading: bool,
 }
 
-// Cấu trúc dữ liệu cho bộ Update
 #[derive(Serialize, serde::Deserialize, Clone, Debug)]
 pub struct UpdateInfo {
     pub current_version: String,
@@ -154,7 +153,8 @@ pub async fn handle_window_resize(app: &AppHandle, phys_size: PhysicalSize<u32>)
     let menu_expanded = *vp_state.menu_expanded.lock().unwrap();
     let active_id = vp_state.active_tab.lock().unwrap().clone();
 
-    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+    // Hỗ trợ cả nhãn "main" và "ui_chrome"
+    if let Some(ui_wv) = app.get_webview("main").or_else(|| app.get_webview("ui_chrome")) {
         let ui_height = if is_internal || menu_expanded {
             logical.height
         } else {
@@ -185,13 +185,13 @@ pub async fn check_for_updates(app: AppHandle) -> Result<UpdateInfo, String> {
     let is_appimage = std::env::var("APPIMAGE").is_ok();
 
     let client = reqwest::Client::builder()
-        .user_agent("CaramBrowser-Updater")
+        .user_agent("VibirdBrowser-Updater")
         .timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| e.to_string())?;
 
     let resp = client
-        .get("https://api.github.com/repos/LocShadowVN/CaramBrowser/releases/latest")
+        .get("https://api.github.com/repos/LocShadowVN/VibirdBrowser/releases/latest")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -234,7 +234,7 @@ pub async fn apply_update(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("CaramBrowser-Updater")
+        .user_agent("VibirdBrowser-Updater")
         .timeout(std::time::Duration::from_secs(120))
         .build()
         .map_err(|e| e.to_string())?;
@@ -342,8 +342,8 @@ pub async fn execute_autofill(
     let secret_json = serde_json::to_string(&secret).map_err(|e| e.to_string())?;
 
     let eval_script = format!(
-        r#"if (window.__CARAM_AUTOFILL) {{ window.__CARAM_AUTOFILL({}, {}); }}"#,
-        user_json, secret_json
+        r#"if (window.__VIBIRD_AUTOFILL) {{ window.__VIBIRD_AUTOFILL({}, {}); }} else if (window.__CARAM_AUTOFILL) {{ window.__CARAM_AUTOFILL({}, {}); }}"#,
+        user_json, secret_json, user_json, secret_json
     );
 
     wv.eval(&eval_script).map_err(|e| e.to_string())?;
@@ -475,7 +475,7 @@ pub async fn open_native_tab(
         *menu = false;
     }
 
-    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+    if let Some(ui_wv) = app.get_webview("main").or_else(|| app.get_webview("ui_chrome")) {
         let _ = ui_wv.set_size(LogicalSize::new(logical.width, NAV_BAR_HEIGHT));
     }
 
@@ -621,7 +621,7 @@ pub async fn switch_tab_view(
         *menu = false;
     }
 
-    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+    if let Some(ui_wv) = app.get_webview("main").or_else(|| app.get_webview("ui_chrome")) {
         let ui_height = if is_internal { logical.height } else { NAV_BAR_HEIGHT };
         let _ = ui_wv.set_size(LogicalSize::new(logical.width, ui_height));
     }
@@ -694,7 +694,7 @@ pub async fn expand_ui_for_menu(
         *menu = expanded;
     }
 
-    if let Some(ui_wv) = app.get_webview("ui_chrome") {
+    if let Some(ui_wv) = app.get_webview("main").or_else(|| app.get_webview("ui_chrome")) {
         let ui_height = if is_internal || expanded {
             logical.height
         } else {
@@ -730,9 +730,9 @@ pub fn set_shield_level(shield: State<'_, ShieldEngine>, level: String) -> Resul
 pub fn resolve_url(raw: String, engine: String) -> String {
     let input = raw.trim();
     if input.is_empty() {
-        return "caram://newtab".to_string();
+        return "vibird://newtab".to_string();
     }
-    if input.starts_with("caram://") || input.starts_with("about:") {
+    if input.starts_with("vibird://") || input.starts_with("caram://") || input.starts_with("about:") {
         return input.to_string();
     }
     if input.starts_with("http://") || input.starts_with("https://") {
@@ -762,7 +762,7 @@ pub async fn fetch_web_page(
     if verdict.blocked {
         return Ok(PageContentResponse {
             final_url: url,
-            title: "Blocked by Caram Shield".into(),
+            title: "Blocked by Vibird Shield".into(),
             html: "<h1>Blocked</h1>".into(),
             blocked_count: 1,
             status: 403,
@@ -909,7 +909,7 @@ pub fn vault_save_credential(
         return Err("Authentication failed: Wrong password".into());
     }
 
-    let salt_bytes = b"caram_vault_global_salt_v1";
+    let salt_bytes = b"vibird_vault_global_salt_v1";
     let key = CryptoEngine::derive_key(&master_pass, salt_bytes)?;
     let (cipher, nonce) = CryptoEngine::encrypt_with_derived_key(&key, &secret)?;
 
@@ -932,7 +932,7 @@ pub fn vault_read_all(
         return Err("Authentication failed: Wrong password".into());
     }
 
-    let salt_bytes = b"caram_vault_global_salt_v1";
+    let salt_bytes = b"vibird_vault_global_salt_v1";
     let key = CryptoEngine::derive_key(&master_pass, salt_bytes)?;
 
     {
