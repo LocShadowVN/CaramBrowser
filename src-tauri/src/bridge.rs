@@ -5,19 +5,15 @@ pub fn get_webbridge_script() -> &'static str {
     (function() {
         'use strict';
 
-        // ============================================================
-        // 1. WEBRTC IP LEAK SHIELD (CHỐNG RÒ RỈ IP NỘI BỘ QUA STUN/ICE)
-        // ============================================================
         try {
             if (window.RTCPeerConnection) {
                 const OrigPeerConnection = window.RTCPeerConnection;
 
                 function sanitizeCandidate(candStr) {
                     if (!candStr || typeof candStr !== 'string') return candStr;
-                    // Chặn các ứng viên typ host chứa IP mạng LAN hoặc IPv6 thật
                     const privateIpRegex = /(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|fe80::[0-9a-fA-F:]+)/;
                     if (candStr.includes('typ host') && privateIpRegex.test(candStr)) {
-                        return null; // Triệt tiêu hoàn toàn candidate lộ IP
+                        return null;
                     }
                     return candStr;
                 }
@@ -36,7 +32,6 @@ pub fn get_webbridge_script() -> &'static str {
                 window.RTCPeerConnection = function(config, constraints) {
                     const pc = new OrigPeerConnection(config, constraints);
 
-                    // Hook createOffer để lọc SDP
                     const origCreateOffer = pc.createOffer.bind(pc);
                     pc.createOffer = function(options) {
                         return origCreateOffer(options).then(offer => {
@@ -45,7 +40,6 @@ pub fn get_webbridge_script() -> &'static str {
                         });
                     };
 
-                    // Hook createAnswer để lọc SDP
                     const origCreateAnswer = pc.createAnswer.bind(pc);
                     pc.createAnswer = function(options) {
                         return origCreateAnswer(options).then(answer => {
@@ -54,7 +48,6 @@ pub fn get_webbridge_script() -> &'static str {
                         });
                     };
 
-                    // Hook onicecandidate property setter
                     let userIceHandler = null;
                     Object.defineProperty(pc, 'onicecandidate', {
                         set: function(fn) {
@@ -64,7 +57,7 @@ pub fn get_webbridge_script() -> &'static str {
                                     const sanitized = sanitizeCandidate(e.candidate.candidate);
                                     if (!sanitized) {
                                         e.stopImmediatePropagation();
-                                        return; // Chặn sự kiện gửi IP về web
+                                        return;
                                     }
                                 }
                                 if (typeof userIceHandler === 'function') {
@@ -72,9 +65,7 @@ pub fn get_webbridge_script() -> &'static str {
                                 }
                             });
                         },
-                        get: function() {
-                            return userIceHandler;
-                        }
+                        get: function() { return userIceHandler; }
                     });
 
                     return pc;
@@ -84,12 +75,9 @@ pub fn get_webbridge_script() -> &'static str {
             }
         } catch (e) {}
 
-        // ============================================================
-        // 2. NAVIGATOR & CLIENT HINTS SPOOFING (CHROME 130 ON LINUX)
-        // ============================================================
         try {
             const CHROME_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
-            
+
             Object.defineProperty(navigator, 'userAgent', { get: () => CHROME_UA, configurable: true });
             Object.defineProperty(navigator, 'appVersion', { get: () => CHROME_UA.replace('Mozilla/', ''), configurable: true });
             Object.defineProperty(navigator, 'platform', { get: () => 'Linux x86_64', configurable: true });
@@ -129,13 +117,8 @@ pub fn get_webbridge_script() -> &'static str {
             Object.defineProperty(navigator, 'userAgentData', { get: () => uaData, configurable: true });
         } catch (e) {}
 
-        // ============================================================
-        // 3. WINDOW.CHROME RUNTIME & INTERNAL METRICS POLYFILL
-        // ============================================================
         try {
-            if (!window.chrome) {
-                window.chrome = {};
-            }
+            if (!window.chrome) window.chrome = {};
 
             window.chrome.app = {
                 isInstalled: false,
@@ -171,7 +154,7 @@ pub fn get_webbridge_script() -> &'static str {
             };
 
             window.chrome.runtime = {
-                id: 'caram-webbridge-runtime',
+                id: 'vibird-webbridge-runtime',
                 connect: function() {
                     return {
                         onMessage: { addListener: function() {}, removeListener: function() {} },
@@ -184,14 +167,11 @@ pub fn get_webbridge_script() -> &'static str {
                     if (cb) setTimeout(() => cb({ success: true }), 0);
                 },
                 getManifest: function() {
-                    return { name: 'Caram WebBridge', version: '1.0.0', manifest_version: 3 };
+                    return { name: 'Vibird WebBridge', version: '1.0.0', manifest_version: 3 };
                 }
             };
         } catch (e) {}
 
-        // ============================================================
-        // 4. WEBRTC & MEDIADEVICES CONSTRAINTS SHIM (MEET / DISCORD)
-        // ============================================================
         try {
             if (window.MediaStreamTrack && !MediaStreamTrack.prototype.getCapabilities) {
                 MediaStreamTrack.prototype.getCapabilities = function() {
@@ -220,9 +200,7 @@ pub fn get_webbridge_script() -> &'static str {
                         };
                     }
                     return {
-                        codecs: [
-                            { mimeType: 'audio/opus', clockRate: 48000, channels: 2 }
-                        ],
+                        codecs: [{ mimeType: 'audio/opus', clockRate: 48000, channels: 2 }],
                         headerExtensions: []
                     };
                 };
@@ -246,6 +224,51 @@ pub fn get_webbridge_script() -> &'static str {
                 };
             }
         } catch (e) {}
+    })();
+    "#
+}
+
+pub fn get_autofill_script() -> &'static str {
+    r#"
+    (function() {
+        'use strict';
+        if (window.__VIBIRD_AUTOFILL) return;
+
+        function setNativeValue(el, value) {
+            if (!el) return false;
+            try {
+                const proto = Object.getPrototypeOf(el);
+                const desc = Object.getOwnPropertyDescriptor(proto, 'value');
+                if (desc && desc.set) {
+                    desc.set.call(el, value);
+                } else {
+                    el.value = value;
+                }
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        window.__VIBIRD_AUTOFILL = function(user, pass) {
+            const pw = document.querySelector('input[type=password]:not([disabled]):not([readonly])');
+            if (!pw) return false;
+            setNativeValue(pw, pass);
+            const form = pw.form || pw.closest('form') || document;
+            const candidates = form.querySelectorAll(
+                'input[type=text]:not([disabled]), input[type=email]:not([disabled]), input[name*=user i], input[name*=login i], input[name*=email i], input[autocomplete=username]'
+            );
+            for (let i = 0; i < candidates.length; i++) {
+                const el = candidates[i];
+                if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                    setNativeValue(el, user);
+                    break;
+                }
+            }
+            return true;
+        };
     })();
     "#
 }
