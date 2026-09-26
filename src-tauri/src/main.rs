@@ -12,14 +12,15 @@ mod extensions;
 use adblock::ShieldEngine;
 use commands::{VaultSession, ViewportManager};
 use database::DbManager;
-use tauri::webview::WebviewBuilder;
-use tauri::window::WindowBuilder;
-use tauri::{LogicalPosition, LogicalSize, PhysicalSize, WebviewUrl};
+use tauri::webview::WebviewWindowBuilder;
+use tauri::{PhysicalSize, WebviewUrl};
 
 fn main() {
+    // 1. Tắt cả DMA-BUF lẫn Compositing Mode để WebKitGTK chạy mượt trên mọi máy Linux / WSLg / NVIDIA
     #[cfg(target_os = "linux")]
     {
         std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
     }
 
     env_logger::init();
@@ -36,27 +37,18 @@ fn main() {
         .manage(vp_manager)
         .manage(vault_session)
         .setup(|app| {
-            let window = WindowBuilder::new(app, "main")
-                .title("Vibird Browser")
-                .inner_size(1400.0, 900.0)
-                .min_inner_size(950.0, 650.0)
-                .resizable(true)
-                .build()?;
-
-            let scale = window.scale_factor().unwrap_or(1.0);
-            let phys_size = window.inner_size().unwrap_or(PhysicalSize::new(1400, 900));
-            let logical_size = phys_size.to_logical::<f64>(scale);
-
-            let ui_webview = WebviewBuilder::new(
-                "ui_chrome",
+            // 2. Dùng WebviewWindowBuilder thay cho WindowBuilder + add_child
+            // Đảm bảo Webview UI gắn thẳng vào GTK container, tự bung 100% kích thước cửa sổ
+            let window = WebviewWindowBuilder::new(
+                app,
+                "main",
                 WebviewUrl::default(),
-            ).auto_resize();
-
-            window.add_child(
-                ui_webview,
-                LogicalPosition::new(0.0, 0.0),
-                LogicalSize::new(logical_size.width, logical_size.height),
-            )?;
+            )
+            .title("Vibird Browser")
+            .inner_size(1400.0, 900.0)
+            .min_inner_size(950.0, 650.0)
+            .resizable(true)
+            .build()?;
 
             let app_handle = app.handle().clone();
             window.on_window_event(move |event| {
