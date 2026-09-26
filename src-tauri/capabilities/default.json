@@ -1,8 +1,9 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions for Caram Browser",
+  "description": "Permissions for Vibird Browser",
   "windows": ["*"],
+  "webviews": ["*"],
   "permissions": [
     "core:default",
     "shell:allow-open"
