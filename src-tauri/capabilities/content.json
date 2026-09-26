@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "content-webviews",
+  "description": "Minimal permissions for untrusted content webviews (tab_*)",
+  "windows": ["main"],
+  "webviews": ["tab_*"],
+  "permissions": [
+    "core:event:default"
+  ]
+}
