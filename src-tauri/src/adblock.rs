@@ -25,26 +25,30 @@ pub struct ShieldEngine {
 fn resolve_bundled_rules_path() -> Option<PathBuf> {
     let mut candidates = Vec::new();
 
-    if let Some(mut data_dir) = dirs::data_local_dir() {
-        data_dir.push("caram-browser");
-        data_dir.push("custom_rules.txt");
-        candidates.push(data_dir);
+    if let Some(data_dir) = dirs::data_local_dir() {
+        candidates.push(data_dir.join("vibird-browser").join("custom_rules.txt"));
+        candidates.push(data_dir.join("caram-browser").join("custom_rules.txt"));
     }
 
     if let Ok(appdir) = std::env::var("APPDIR") {
-        candidates.push(PathBuf::from(&appdir).join("usr/lib/caram-browser/resources/rules.txt"));
-        candidates.push(PathBuf::from(&appdir).join("usr/lib/caram_browser/resources/rules.txt"));
-        candidates.push(PathBuf::from(&appdir).join("usr/bin/resources/rules.txt"));
-        candidates.push(PathBuf::from(&appdir).join("resources/rules.txt"));
+        let root = PathBuf::from(&appdir);
+        candidates.push(root.join("usr/lib/vibird-browser/resources/rules.txt"));
+        candidates.push(root.join("usr/lib/caram-browser/resources/rules.txt"));
+        candidates.push(root.join("usr/lib/caram_browser/resources/rules.txt"));
+        candidates.push(root.join("usr/bin/resources/rules.txt"));
+        candidates.push(root.join("resources/rules.txt"));
     }
 
+    candidates.push(PathBuf::from("/usr/lib/vibird-browser/resources/rules.txt"));
     candidates.push(PathBuf::from("/usr/lib/caram-browser/resources/rules.txt"));
     candidates.push(PathBuf::from("/usr/lib/caram_browser/resources/rules.txt"));
+    candidates.push(PathBuf::from("/usr/share/vibird-browser/resources/rules.txt"));
     candidates.push(PathBuf::from("/usr/share/caram-browser/resources/rules.txt"));
 
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(parent) = exe_path.parent() {
             candidates.push(parent.join("resources/rules.txt"));
+            candidates.push(parent.join("../lib/vibird-browser/resources/rules.txt"));
             candidates.push(parent.join("../lib/caram-browser/resources/rules.txt"));
             candidates.push(parent.join("../lib/caram_browser/resources/rules.txt"));
         }
@@ -83,16 +87,41 @@ impl ShieldEngine {
                 "/telemetry/*".into(),
             ];
 
-            if let Some(rules_path) = resolve_bundled_rules_path() {
-                if let Ok(content) = std::fs::read_to_string(&rules_path) {
-                    for line in content.lines() {
-                        let trimmed = line.trim();
-                        if !trimmed.is_empty() && !trimmed.starts_with('!') && !trimmed.starts_with('#') {
-                            rules.push(trimmed.to_string());
+            let resolved_path = resolve_bundled_rules_path();
+            let mut external_count = 0usize;
+
+            if let Some(ref rules_path) = resolved_path {
+                match std::fs::read_to_string(rules_path) {
+                    Ok(content) => {
+                        for line in content.lines() {
+                            let trimmed = line.trim().trim_start_matches('\u{feff}');
+                            if !trimmed.is_empty()
+                                && !trimmed.starts_with('!')
+                                && !trimmed.starts_with('#')
+                            {
+                                rules.push(trimmed.to_string());
+                                external_count += 1;
+                            }
                         }
+                        log::info!(
+                            "Vibird Shield: loaded {} external rules from {:?}",
+                            external_count,
+                            rules_path
+                        );
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Vibird Shield: cannot read {:?}: {} (using baseline rules only)",
+                            rules_path,
+                            e
+                        );
                     }
                 }
+            } else {
+                log::warn!("Vibird Shield: no bundled rules.txt found — using baseline rules only");
             }
+
+            log::info!("Vibird Shield: engine initialized with {} total rules", rules.len());
 
             let engine = Engine::from_rules(
                 rules.iter().map(|s| s.as_str()),
@@ -177,14 +206,22 @@ impl ShieldEngine {
 
     pub fn get_injected_script(&self) -> String {
         let css = self.get_cosmetic_css();
-        let bridge_script = crate::bridge::get_webbridge_script();
 
-        format!(r#"
+        format!(
+            r#"
             (function() {{
-                // 1. CARAM WEBBRIDGE COMPATIBILITY LAYER
-                {}
+                'use strict';
 
-                // 2. CHẶN TẦNG SÂU: PROPERTY DESCRIPTOR & DOM HOOK
+                const TAB_ID = window.__VIBIRD_TAB_ID || '';
+
+                function reportBlock() {{
+                    try {{
+                        if (window.__TAURI__ && window.__TAURI__.event && window.__TAURI__.event.emit) {{
+                            window.__TAURI__.event.emit('shield-blocked', {{ tab_id: TAB_ID, count: 1 }});
+                        }}
+                    }} catch (e) {{}}
+                }}
+
                 const BLOCKED_PATTERNS = [
                     'doubleclick.net', 'google-analytics.com', 'googlesyndication.com',
                     'googleadservices.com', 'adnxs.com', 'facebook.com/tr',
@@ -209,7 +246,8 @@ impl ShieldEngine {
                     Object.defineProperty(HTMLScriptElement.prototype, 'src', {{
                         set: function(val) {{
                             if (isTrackingUrl(val)) {{
-                                return origScriptSrcDesc.set.call(this, 'data:text/javascript,/*blocked-by-caram-shield*/');
+                                reportBlock();
+                                return origScriptSrcDesc.set.call(this, 'data:text/javascript,/*blocked-by-vibird-shield*/');
                             }}
                             return origScriptSrcDesc.set.call(this, val);
                         }},
@@ -224,6 +262,7 @@ impl ShieldEngine {
                     Object.defineProperty(HTMLIFrameElement.prototype, 'src', {{
                         set: function(val) {{
                             if (isTrackingUrl(val)) {{
+                                reportBlock();
                                 return origIframeSrcDesc.set.call(this, 'about:blank');
                             }}
                             return origIframeSrcDesc.set.call(this, val);
@@ -237,12 +276,12 @@ impl ShieldEngine {
                 const OrigWS = window.WebSocket;
                 window.WebSocket = function(url, protocols) {{
                     if (isTrackingUrl(url)) {{
-                        throw new Error('Blocked by Caram Shield Deep Network Guard');
+                        reportBlock();
+                        throw new Error('Blocked by Vibird Shield Deep Network Guard');
                     }}
                     return new OrigWS(url, protocols);
                 }};
 
-                // 3. BRAVE FARBLING: ANTI-FINGERPRINTING
                 try {{
                     const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
                     HTMLCanvasElement.prototype.toDataURL = function() {{
@@ -252,7 +291,7 @@ impl ShieldEngine {
                                 const imgData = ctx.getImageData(0, 0, 2, 2);
                                 imgData.data[0] = (imgData.data[0] ^ 1);
                                 ctx.putImageData(imgData, 0, 0);
-                            }} catch(e) {{}}
+                            }} catch (e) {{}}
                         }}
                         return origToDataURL.apply(this, arguments);
                     }};
@@ -281,9 +320,8 @@ impl ShieldEngine {
                     if (navigator.getBattery) {{
                         navigator.getBattery = () => Promise.reject();
                     }}
-                }} catch(e) {{}}
+                }} catch (e) {{}}
 
-                // 4. DIỆT BANNER COOKIE & SCRIPTLET DEFUSERS
                 window.canRunAds = true;
                 window.isAdBlockActive = false;
                 window.ga = function() {{}};
@@ -309,6 +347,7 @@ impl ShieldEngine {
                 window.fetch = function(input, init) {{
                     const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
                     if (isTrackingUrl(url)) {{
+                        reportBlock();
                         return Promise.resolve(new Response('', {{ status: 204, statusText: 'Blocked' }}));
                     }}
                     return origFetch.apply(this, arguments);
@@ -317,37 +356,17 @@ impl ShieldEngine {
                 const origOpen = XMLHttpRequest.prototype.open;
                 XMLHttpRequest.prototype.open = function(method, url) {{
                     if (isTrackingUrl(url)) {{
+                        reportBlock();
                         this.abort();
                         return;
                     }}
                     return origOpen.apply(this, arguments);
                 }};
 
-                // 5. AUTOFILL DOM ENGINE
-                window.__CARAM_AUTOFILL = function(user, pass) {{
-                    const passInput = document.querySelector('input[type="password"]');
-                    if (passInput) {{
-                        passInput.value = pass;
-                        passInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                        passInput.dispatchEvent(new Event('change', {{ bubbles: true }}));
-
-                        let form = passInput.form || passInput.closest('form') || document.body;
-                        let userInput = form.querySelector('input[type="text"], input[type="email"], input[name*="user"], input[name*="login"], input[name*="email"]');
-                        if (userInput) {{
-                            userInput.value = user;
-                            userInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                            userInput.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        }}
-                        return true;
-                    }}
-                    return false;
-                }};
-
-                // 6. INJECT COSMETIC STYLESHEET
                 const injectCss = () => {{
-                    if (document.getElementById('caram-shield-cosmetics')) return;
+                    if (document.getElementById('vibird-shield-cosmetics')) return;
                     const style = document.createElement('style');
-                    style.id = 'caram-shield-cosmetics';
+                    style.id = 'vibird-shield-cosmetics';
                     style.textContent = `{}`;
                     (document.head || document.documentElement).appendChild(style);
                 }};
@@ -357,7 +376,9 @@ impl ShieldEngine {
                     injectCss();
                 }}
             }})();
-        "#, bridge_script, css)
+            "#,
+            css
+        )
     }
 
     pub async fn inspect_url(&self, target_url: &str, host_url: &str) -> ShieldVerdict {
@@ -377,7 +398,8 @@ impl ShieldEngine {
                 url: target_url.to_string(),
                 host: host_url.to_string(),
                 reply_to: reply_tx,
-            }).is_ok()
+            })
+            .is_ok()
         } else {
             false
         };
