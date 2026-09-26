@@ -10,7 +10,7 @@ fn main() {
     if !rules_file.exists() {
         let _ = fs::write(
             rules_file,
-            "# Caram Shield Baseline Rules\n||doubleclick.net^\n||google-analytics.com^\n",
+            "# Vibird Shield Baseline Rules\n||doubleclick.net^\n||google-analytics.com^\n",
         );
     }
     tauri_build::build();
