@@ -2,7 +2,7 @@
 
 <img src="src-tauri/icons/app-icon.svg" width="160" height="160" alt="Vibird Browser Logo" />
 
-# 🛡️ Vibird Browser
+# Vibird Browser
 
 **Trình duyệt desktop siêu nhẹ, không ngốn RAM và bảo vệ quyền riêng tư tuyệt đối cho Linux.**  
 *An ultra-lean, memory-safe, privacy-hardened desktop web browser for Linux workstations.*
